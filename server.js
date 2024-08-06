@@ -3,14 +3,20 @@ require("dotenv").config();
 const connectDB = require("./config/db");
 require("colors");
 const { errorHandler } = require("./middleware/errorMiddleware");
-
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const helmet = require("helmet");
+const morgan = require("morgan");
 
 const PORT = process.env.PORT || 5000;
 
 const app = express();
+
+if (process.env.NODE_ENV === "development") {
+  app.use(morgan("dev"));
+} else {
+  app.use(morgan("combined"));
+}
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
@@ -27,6 +33,10 @@ app.use(
 );
 
 // Routes
+
+app.get("/", (req, res) => {
+  res.status(200).json({ message: "Welcome to the recommendable API" });
+});
 
 app.use(errorHandler);
 
