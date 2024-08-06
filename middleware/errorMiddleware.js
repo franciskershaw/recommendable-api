@@ -1,4 +1,4 @@
-const { UnauthorizedError } = require("../errors/errors");
+const { UnauthorizedError } = require("../utils/errors");
 const dayjs = require("dayjs");
 
 const errorHandler = (err, req, res, next) => {
