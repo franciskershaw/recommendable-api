@@ -7,6 +7,7 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
+const passport = require("./config/passport");
 
 const PORT = process.env.PORT || 5000;
 
@@ -32,7 +33,7 @@ app.use(
   })
 );
 
-// Routes
+app.use(passport.initialize());
 
 app.get("/", (req, res) => {
   res.status(200).json({ message: "Welcome to the recommendable API" });
