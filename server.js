@@ -9,23 +9,28 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const passport = require("./config/passport");
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5400;
 
 const app = express();
 
+// Logger
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 } else {
   app.use(morgan("combined"));
 }
 
+// Parser
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
+// Cookies
 app.use(cookieParser());
 
+// Basic security
 app.use(helmet());
 
+// Cors
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN,
@@ -33,14 +38,20 @@ app.use(
   })
 );
 
+// Passport / Auth
 app.use(passport.initialize());
 
-app.get("/", (req, res) => {
+// Routes
+app.use("/api/auth", require("./routes/auth"));
+
+app.get("/", (_, res) => {
   res.status(200).json({ message: "Welcome to the recommendable API" });
 });
 
+// Error handler
 app.use(errorHandler);
 
+// DB Connection
 connectDB()
   .then(() => {
     app.listen(
