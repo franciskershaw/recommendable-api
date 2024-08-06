@@ -2,7 +2,7 @@ const express = require("express");
 require("dotenv").config();
 const connectDB = require("./config/db");
 require("colors");
-// const { errorHandler } = require('./middleware/errorMiddleware');
+const { errorHandler } = require("./middleware/errorMiddleware");
 
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
@@ -28,7 +28,7 @@ app.use(
 
 // Routes
 
-// app.use(errorHandler);
+app.use(errorHandler);
 
 connectDB()
   .then(() => {
