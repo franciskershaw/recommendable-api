@@ -1,13 +1,20 @@
 const express = require("express");
 const passport = require("passport");
+const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { generateToken } = require("../utils/jwt");
+const { registerSchema, loginSchema } = require("../utils/schemas");
 
 const router = express.Router();
 
 // Registration route
 router.post("/register", async (req, res) => {
   const { email, password } = req.body;
+
+  const { error } = registerSchema.validate({ email, password });
+  if (error) {
+    return res.status(400).json({ message: error.details[0].message });
+  }
 
   try {
     const existingUser = await User.findOne({ email });
@@ -28,6 +35,14 @@ router.post("/register", async (req, res) => {
 
 // Login route
 router.post("/login", (req, res, next) => {
+  const { email, password } = req.body;
+
+  // Validate request body using Joi
+  const { error } = loginSchema.validate({ email, password });
+  if (error) {
+    return res.status(400).json({ message: error.details[0].message });
+  }
+
   passport.authenticate("local", { session: false }, (err, user, info) => {
     if (err || !user) {
       return res
