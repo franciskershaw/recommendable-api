@@ -55,4 +55,24 @@ router.post("/login", (req, res, next) => {
   })(req, res, next);
 });
 
+// Google OAuth route
+router.get(
+  "/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
+
+// Google OAuth callback route
+router.get(
+  "/google/callback",
+  passport.authenticate("google", {
+    session: false,
+    failureRedirect: "/login",
+  }),
+  (req, res) => {
+    // On success, generate a JWT and redirect or respond with the token
+    const token = generateToken(req.user);
+    res.json({ token });
+  }
+);
+
 module.exports = router;

@@ -12,18 +12,20 @@ const UserSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, "Please add a password"],
+      required: function () {
+        return !this.googleId;
+      },
     },
     googleId: {
       type: String,
+      unique: true,
     },
   },
   { timestamps: true }
 );
 
-// Encrypt password using bcrypt
 UserSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) {
+  if (!this.isModified("password") || !this.password) {
     next();
   }
   const salt = await bcrypt.genSalt(10);
