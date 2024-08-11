@@ -1,8 +1,6 @@
 const passport = require("passport");
 const { ExtractJwt, Strategy: JwtStrategy } = require("passport-jwt");
-const LocalStrategy = require("passport-local").Strategy;
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
-const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 
 // JWT Strategy
@@ -25,31 +23,6 @@ passport.use(
       return done(error, false);
     }
   })
-);
-
-// Local Strategy
-passport.use(
-  new LocalStrategy(
-    { usernameField: "email" },
-    async (email, password, done) => {
-      try {
-        const user = await User.findOne({ email });
-        if (!user) {
-          return done(null, false, { message: "Incorrect email or password" });
-        }
-
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-          return done(null, false, { message: "Incorrect email or password" });
-        }
-
-        return done(null, user);
-      } catch (error) {
-        console.error(error);
-        return done(error, false);
-      }
-    }
-  )
 );
 
 // Google OAuth Strategy
