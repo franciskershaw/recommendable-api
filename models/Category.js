@@ -7,10 +7,10 @@ const CategorySchema = new mongoose.Schema(
       required: [true, "Please add a name"],
       trim: true,
     },
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
+    // createdBy: {
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: "User",
+    // },
     icon: {
       type: String,
       required: [true, "Please choose an icon"],
