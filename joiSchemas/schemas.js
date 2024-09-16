@@ -15,13 +15,13 @@ const recommendSchema = Joi.object({
     "any.required": "RecommendedBy is required.",
   }),
   category: Joi.string()
-    .valid([
+    .valid(
       CATEGORY_FILMS,
       CATEGORY_TV,
       CATEGORY_MUSIC,
       CATEGORY_EVENTS,
-      CATEGORY_PLACES,
-    ])
+      CATEGORY_PLACES
+    )
     .required()
     .messages({
       "any.required": "Category is required.",
