@@ -14,6 +14,12 @@ const RecommendSchema = new mongoose.Schema({
     trim: true,
     maxlength: [50, "Name can not be more than 50 characters"],
   },
+  recommendedBy: {
+    type: String,
+    required: [true, "Please add a recommendedBy"],
+    trim: true,
+    maxlength: [50, "Name can not be more than 50 characters"],
+  },
   category: {
     type: String,
     enum: [
