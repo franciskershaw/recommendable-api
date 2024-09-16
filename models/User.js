@@ -22,10 +22,12 @@ const UserSchema = new mongoose.Schema(
       enum: ["user", "admin"],
       default: "user",
     },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
+    recommends: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Recommend",
+      },
+    ],
   },
   { timestamps: true }
 );

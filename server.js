@@ -43,7 +43,6 @@ app.use(passport.initialize());
 
 // Routes
 app.use("/api/auth", require("./routes/auth"));
-app.use("/api/categories", require("./routes/categories"));
 
 app.get("/", (_, res) => {
   res.status(200).json({ message: "Welcome to the recommendable API" });
