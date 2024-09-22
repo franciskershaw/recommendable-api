@@ -3,7 +3,7 @@ const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
 const { refreshTokens } = require("../middleware/authMiddleware");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const { GOOGLE_PROVIDER, LOCAL_PROVIDER } = require("../utils/constants");
 
