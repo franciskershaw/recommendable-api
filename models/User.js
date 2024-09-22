@@ -12,6 +12,11 @@ const UserSchema = new mongoose.Schema(
     googleId: {
       type: String,
       unique: true,
+      sparse: true, // Allows this field to be optional and avoid index issues for local users
+    },
+    password: {
+      type: String,
+      select: false, // Do not return the password in queries by default
     },
     name: {
       type: String,
@@ -28,6 +33,11 @@ const UserSchema = new mongoose.Schema(
         ref: "Recommend",
       },
     ],
+    provider: {
+      type: String,
+      enum: ["google", "local"],
+      required: true,
+    },
   },
   { timestamps: true }
 );
