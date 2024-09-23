@@ -38,23 +38,29 @@ passport.use(
         let user = await User.findOne({ googleId: profile.id });
 
         if (!user) {
+          // Check if a user exists by email (for users who might sign up with email first)
           user = await User.findOne({ email: profile.emails[0].value });
 
           if (user) {
+            // If found by email, add Google ID and update provider
             user.googleId = profile.id;
+            user.provider = "google";
             await user.save();
           } else {
+            // Otherwise, create a new user
             user = new User({
               googleId: profile.id,
               email: profile.emails[0].value,
+              name: profile.displayName,
+              provider: "google",
             });
             await user.save();
           }
         }
 
+        // Pass the user object to the next step (callback route)
         return done(null, user);
       } catch (error) {
-        console.error(error);
         return done(error, false);
       }
     }

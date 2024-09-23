@@ -71,7 +71,7 @@ router.post(
       secure: process.env.NODE_ENV === "production",
     });
 
-    res.json({ accessToken });
+    res.json({ user, accessToken });
   }
 );
 
@@ -86,20 +86,31 @@ router.get(
   "/google/callback",
   passport.authenticate("google", {
     session: false,
-    failureRedirect: "/login",
+    failureRedirect: "/login", // Handle failure case
   }),
   (req, res) => {
-    const user = req.user;
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
+    try {
+      // req.user is populated by Passport if the strategy succeeds
+      const user = req.user;
 
-    // Send tokens to the client
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-    });
+      // Generate tokens
+      const accessToken = generateAccessToken(user);
+      const refreshToken = generateRefreshToken(user);
 
-    res.json({ accessToken });
+      // Set refreshToken in a cookie
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+      });
+
+      // Send accessToken back to the client
+      res.json({ accessToken });
+    } catch (err) {
+      console.error("Error during Google callback:", err);
+      res.status(500).json({
+        message: "An unexpected error occurred, please try again later.",
+      });
+    }
   }
 );
 
