@@ -118,6 +118,6 @@ router.post("/logout", (req, res) => {
   res.json({ message: "Logged out successfully" });
 });
 
-router.post("/refresh-token", refreshTokens);
+router.get("/refresh-token", refreshTokens);
 
 module.exports = router;
