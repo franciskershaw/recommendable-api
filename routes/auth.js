@@ -104,7 +104,7 @@ router.get(
       });
 
       // Send accessToken back to the client
-      res.json({ accessToken });
+      res.json({ user, accessToken });
     } catch (err) {
       console.error("Error during Google callback:", err);
       res.status(500).json({
