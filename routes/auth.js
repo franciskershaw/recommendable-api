@@ -86,15 +86,14 @@ router.get(
   "/google/callback",
   passport.authenticate("google", {
     session: false,
-    failureRedirect: "/login", // Handle failure case
+    failureRedirect: process.env.FRONTEND_URL, // Handle failure case
   }),
   (req, res) => {
     try {
       // req.user is populated by Passport if the strategy succeeds
       const user = req.user;
 
-      // Generate tokens
-      const accessToken = generateAccessToken(user);
+      // Generate token
       const refreshToken = generateRefreshToken(user);
 
       // Set refreshToken in a cookie
@@ -103,8 +102,8 @@ router.get(
         secure: process.env.NODE_ENV === "production",
       });
 
-      // Send accessToken back to the client
-      res.json({ user, accessToken });
+      // Redirect user to frontend
+      res.redirect(`${process.env.FRONTEND_URL}films`);
     } catch (err) {
       console.error("Error during Google callback:", err);
       res.status(500).json({
