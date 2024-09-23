@@ -2,19 +2,17 @@ const jwt = require("jsonwebtoken");
 
 // Generate access token
 const generateAccessToken = (user) => {
-  return jwt.sign(
-    { id: user._id, email: user.email },
-    process.env.JWT_SECRET,
-    { expiresIn: "15m" } // Short-lived access token
-  );
+  return jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, {
+    expiresIn: "15m",
+  });
 };
 
 // Generate refresh token
 const generateRefreshToken = (user) => {
   return jwt.sign(
     { id: user._id, email: user.email },
-    process.env.JWT_REFRESH_SECRET, // Separate secret for refresh tokens
-    { expiresIn: "7d" } // Longer-lived refresh token
+    process.env.JWT_REFRESH_SECRET,
+    { expiresIn: "7d" }
   );
 };
 
@@ -23,7 +21,7 @@ const verifyAccessToken = (token) => {
   try {
     return jwt.verify(token, process.env.JWT_SECRET);
   } catch (error) {
-    return null; // Invalid or expired token
+    return null;
   }
 };
 
@@ -32,7 +30,7 @@ const verifyRefreshToken = (token) => {
   try {
     return jwt.verify(token, process.env.JWT_REFRESH_SECRET);
   } catch (error) {
-    return null; // Invalid or expired token
+    return null;
   }
 };
 

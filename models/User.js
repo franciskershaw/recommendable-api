@@ -12,11 +12,11 @@ const UserSchema = new mongoose.Schema(
     googleId: {
       type: String,
       unique: true,
-      sparse: true, // Allows this field to be optional and avoid index issues for local users
+      sparse: true,
     },
     password: {
       type: String,
-      select: false, // Do not return the password in queries by default
+      select: false,
     },
     name: {
       type: String,
