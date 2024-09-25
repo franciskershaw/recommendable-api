@@ -1,12 +1,13 @@
 import express from "express";
 import { getRecommends, createRecommend } from "../controllers/recommend";
+import { authenticateToken } from "../middleware/authMiddleware";
 
 const router = express.Router();
 
 // Get recommendations
-router.get("/", getRecommends);
+router.get("/", authenticateToken, getRecommends);
 
 // Create a new recommendation
-router.post("/", createRecommend);
+router.post("/", authenticateToken, createRecommend);
 
 export default router;
