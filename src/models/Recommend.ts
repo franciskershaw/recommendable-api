@@ -1,12 +1,26 @@
-const mongoose = require("mongoose");
-const {
+import mongoose, { Document, Model } from "mongoose";
+import {
   CATEGORY_FILMS,
   CATEGORY_TV,
   CATEGORY_MUSIC,
   CATEGORY_EVENTS,
   CATEGORY_PLACES,
-} = require("../utils/constants");
+} from "../utils/constants";
 
+// Define an interface for the Recommend document
+export interface IRecommend extends Document {
+  _id: string;
+  name: string;
+  recommendedBy: string;
+  category:
+    | typeof CATEGORY_FILMS
+    | typeof CATEGORY_TV
+    | typeof CATEGORY_MUSIC
+    | typeof CATEGORY_EVENTS
+    | typeof CATEGORY_PLACES;
+}
+
+// Create the schema
 const RecommendSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -32,4 +46,8 @@ const RecommendSchema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model("Recommend", RecommendSchema);
+const Recommend: Model<IRecommend> = mongoose.model<IRecommend>(
+  "Recommend",
+  RecommendSchema
+);
+export default Recommend;

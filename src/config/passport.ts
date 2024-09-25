@@ -1,12 +1,16 @@
-const passport = require("passport");
-const { ExtractJwt, Strategy: JwtStrategy } = require("passport-jwt");
-const GoogleStrategy = require("passport-google-oauth20").Strategy;
-const User = require("../models/User");
+import passport from "passport";
+import { ExtractJwt, Strategy as JwtStrategy } from "passport-jwt";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import User from "../models/User";
+
+if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+  throw new Error("Google OAuth credentials are not defined");
+}
 
 // JWT Strategy
 const jwtOptions = {
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-  secretOrKey: process.env.JWT_SECRET,
+  secretOrKey: process.env.JWT_SECRET || "",
 };
 
 passport.use(
@@ -33,24 +37,28 @@ passport.use(
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackURL: "/api/auth/google/callback",
     },
-    async (accessToken, refreshToken, profile, done) => {
+    async (
+      accessToken: string,
+      refreshToken: string,
+      profile,
+      done: (error: any, user?: any) => void
+    ) => {
       try {
         let user = await User.findOne({ googleId: profile.id });
 
         if (!user) {
-          // Check if a user exists by email (for users who might sign up with email first)
-          user = await User.findOne({ email: profile.emails[0].value });
+          user = await User.findOne({ email: profile.emails?.[0].value });
 
           if (user) {
-            // If found by email, add Google ID and update provider
+            // Update existing user with Google ID
             user.googleId = profile.id;
             user.provider = "google";
             await user.save();
           } else {
-            // Otherwise, create a new user
+            // Create a new user
             user = new User({
               googleId: profile.id,
-              email: profile.emails[0].value,
+              email: profile.emails?.[0].value,
               name: profile.displayName,
               provider: "google",
             });
@@ -58,7 +66,6 @@ passport.use(
           }
         }
 
-        // Pass the user object to the next step (callback route)
         return done(null, user);
       } catch (error) {
         return done(error, false);
@@ -67,4 +74,4 @@ passport.use(
   )
 );
 
-module.exports = passport;
+export default passport;

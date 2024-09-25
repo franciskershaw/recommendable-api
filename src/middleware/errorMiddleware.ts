@@ -1,7 +1,13 @@
-const { UnauthorizedError } = require("../utils/errors");
-const dayjs = require("dayjs");
+import { Request, Response, NextFunction } from "express";
+import { UnauthorizedError } from "../utils/errors";
+import dayjs from "dayjs";
 
-const errorHandler = (err, req, res, next) => {
+export const errorHandler = (
+  err: any,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   if (process.env.NODE_ENV === "development") {
     console.log(dayjs().format("MMMM D YYYY, h:mm:ss a"), err);
   }
@@ -25,8 +31,4 @@ const errorHandler = (err, req, res, next) => {
       stack: process.env.NODE_ENV === "production" ? null : err.stack,
     });
   }
-};
-
-module.exports = {
-  errorHandler,
 };

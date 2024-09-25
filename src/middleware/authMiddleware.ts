@@ -1,12 +1,18 @@
-const {
+import { Request, Response, NextFunction } from "express";
+import {
   verifyAccessToken,
   verifyRefreshToken,
   generateAccessToken,
   generateRefreshToken,
-} = require("../utils/jwt");
-const { UnauthorizedError, ForbiddenError } = require("../utils/errors");
+} from "../utils/jwt";
+import { UnauthorizedError, ForbiddenError } from "../utils/errors";
+import { IUser } from "../models/User";
 
-const authenticateToken = (req, _, next) => {
+export const authenticateToken = (
+  req: Request,
+  _: Response,
+  next: NextFunction
+) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
 
@@ -24,7 +30,11 @@ const authenticateToken = (req, _, next) => {
   next();
 };
 
-const refreshTokens = (req, res, next) => {
+export const refreshTokens = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const refreshToken = req.cookies.refreshToken;
 
   if (!refreshToken) {
@@ -36,7 +46,7 @@ const refreshTokens = (req, res, next) => {
     );
   }
 
-  const decoded = verifyRefreshToken(refreshToken);
+  const decoded = verifyRefreshToken(refreshToken) as IUser | undefined;
 
   if (!decoded) {
     res.clearCookie("refreshToken");
@@ -46,16 +56,10 @@ const refreshTokens = (req, res, next) => {
   const newAccessToken = generateAccessToken(decoded);
   const newRefreshToken = generateRefreshToken(decoded);
 
-  // Send the new tokens
   res.cookie("refreshToken", newRefreshToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production", // Ensure secure cookies in production
+    secure: process.env.NODE_ENV === "production",
   });
 
   res.json({ accessToken: newAccessToken });
-};
-
-module.exports = {
-  authenticateToken,
-  refreshTokens,
 };

@@ -1,11 +1,12 @@
-const express = require("express");
-const passport = require("passport");
-const LocalStrategy = require("passport-local").Strategy;
-const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
-const { refreshTokens } = require("../middleware/authMiddleware");
-const bcrypt = require("bcryptjs");
-const User = require("../models/User");
-const { GOOGLE_PROVIDER, LOCAL_PROVIDER } = require("../utils/constants");
+import express from "express";
+import passport from "passport";
+
+import { Strategy as LocalStrategy } from "passport-local";
+import { generateAccessToken, generateRefreshToken } from "../utils/jwt";
+import { refreshTokens } from "../middleware/authMiddleware";
+import bcrypt from "bcryptjs";
+import User, { IUser } from "../models/User";
+import { GOOGLE_PROVIDER, LOCAL_PROVIDER } from "../utils/constants";
 
 const router = express.Router();
 
@@ -20,9 +21,17 @@ passport.use(
     },
     async (email, password, done) => {
       try {
+        // Find the user and explicitly include the password field
         const user = await User.findOne({ email }).select("+password");
+
         if (!user) {
+          // Artificial bcrypt comparison to prevent timing attacks
           await bcrypt.compare(password, INVALID_BCRYPT_HASH);
+          return done(null, false, { message: "Invalid email or password." });
+        }
+
+        // Check if password exists before comparison
+        if (!user.password) {
           return done(null, false, { message: "Invalid email or password." });
         }
 
@@ -40,8 +49,9 @@ passport.use(
 );
 
 // Serialize and deserialize user
-passport.serializeUser((user, done) => {
-  done(null, user.id);
+passport.serializeUser((user: Express.User, done) => {
+  const typedUser = user as IUser & { _id: string }; // Cast to the correct type
+  done(null, typedUser._id); // Ensure _id is used as a string
 });
 
 passport.deserializeUser(async (id, done) => {
@@ -61,7 +71,12 @@ router.post(
     failureRedirect: "/login",
   }),
   (req, res) => {
-    const user = req.user;
+    const user = req.user as IUser | undefined;
+
+    if (!user) {
+      return res.status(401).json({ message: "Authentication failed" });
+    }
+
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
 
@@ -91,7 +106,11 @@ router.get(
   (req, res) => {
     try {
       // req.user is populated by Passport if the strategy succeeds
-      const user = req.user;
+      const user = req.user as IUser | undefined;
+
+      if (!user) {
+        return res.status(401).json({ message: "Authentication failed" });
+      }
 
       // Generate token
       const refreshToken = generateRefreshToken(user);
@@ -120,4 +139,4 @@ router.post("/logout", (req, res) => {
 
 router.get("/refresh-token", refreshTokens);
 
-module.exports = router;
+export default router;

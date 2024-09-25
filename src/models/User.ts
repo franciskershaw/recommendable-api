@@ -1,5 +1,18 @@
-const mongoose = require("mongoose");
+import mongoose, { Document, Model } from "mongoose";
 
+// Define an interface for the User document
+export interface IUser extends Document {
+  _id: string;
+  email: string;
+  googleId?: string;
+  password?: string;
+  name?: string;
+  role: "user" | "admin";
+  recommends: string[];
+  provider: "google" | "local";
+}
+
+// Create the schema
 const UserSchema = new mongoose.Schema(
   {
     email: {
@@ -42,4 +55,6 @@ const UserSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("User", UserSchema);
+// Export the model with the IUser type
+const User: Model<IUser> = mongoose.model<IUser>("User", UserSchema);
+export default User;

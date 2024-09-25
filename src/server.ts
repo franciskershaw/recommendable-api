@@ -1,13 +1,17 @@
-const express = require("express");
-require("dotenv").config();
-const connectDB = require("./config/db");
-require("colors");
-const { errorHandler } = require("./middleware/errorMiddleware");
-const cookieParser = require("cookie-parser");
-const cors = require("cors");
-const helmet = require("helmet");
-const morgan = require("morgan");
-const passport = require("./config/passport");
+import express from "express";
+import dotenv from "dotenv";
+dotenv.config();
+import connectDb from "./config/db";
+import "colors";
+import { errorHandler } from "./middleware/errorMiddleware";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
+import passport from "./config/passport";
+import authRoutes from "./routes/auth";
+import userRoutes from "./routes/users";
+import recommendRoutes from "./routes/recommend";
 
 const PORT = process.env.PORT || 5400;
 
@@ -42,9 +46,9 @@ app.use(
 app.use(passport.initialize());
 
 // Routes
-app.use("/api/auth", require("./routes/auth"));
-app.use("/api/users", require("./routes/users"));
-app.use("/api/recommend", require("./routes/recommend"));
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/recommend", recommendRoutes);
 
 app.get("/", (_, res) => {
   res.status(200).json({ message: "Welcome to the recommendable API" });
@@ -54,16 +58,15 @@ app.get("/", (_, res) => {
 app.use(errorHandler);
 
 // DB Connection
-connectDB()
+connectDb()
   .then(() => {
-    app.listen(
-      PORT,
+    app.listen(PORT, () => {
       console.log(
         `Server running in ${process.env.NODE_ENV} mode on port ${PORT}\n`
           .yellow,
         "-----------------------------------------------------------".yellow
-      )
-    );
+      );
+    });
   })
   .catch((err) => {
     console.error(

@@ -1,13 +1,14 @@
-const express = require("express");
-const { Recommend } = require("../models/Recommend");
-const { validateRequest } = require("../joiSchemas/validate");
-const { recommendSchema } = require("../joiSchemas/schemas");
+import express from "express";
+import Recommend, { IRecommend } from "../models/Recommend";
+import validateRequest from "../joiSchemas/validate";
+import { recommendSchema } from "../joiSchemas/schemas"; // rename this to 'newRecommendSchema'
+import { IUser } from "../models/User";
 
 const router = express.Router();
 
 router.get("/", async (req, res, next) => {
   try {
-    const user = req.user;
+    const user = req.user as IUser;
     const recommendsIds = user.recommends;
 
     const recommends = await Recommend.find({ _id: { $in: recommendsIds } });
@@ -20,7 +21,7 @@ router.get("/", async (req, res, next) => {
 
 router.post("/", async (req, res, next) => {
   try {
-    const user = req.user;
+    const user = req.user as IUser;
     const { value } = validateRequest(req.body, recommendSchema);
     const { name, recommendedBy, category } = value;
 
@@ -28,7 +29,7 @@ router.post("/", async (req, res, next) => {
       name,
       recommendedBy,
       category,
-    });
+    }) as IRecommend;
 
     user.recommends.push(recommend._id);
 
@@ -40,4 +41,4 @@ router.post("/", async (req, res, next) => {
   }
 });
 
-module.exports = router;
+export default router;

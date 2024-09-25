@@ -1,13 +1,13 @@
-const Joi = require("joi");
-const {
+import Joi from "joi";
+import {
   CATEGORY_FILMS,
   CATEGORY_TV,
   CATEGORY_MUSIC,
   CATEGORY_EVENTS,
   CATEGORY_PLACES,
-} = require("../utils/constants");
+} from "../utils/constants";
 
-const recommendSchema = Joi.object({
+export const recommendSchema = Joi.object({
   name: Joi.string().required().messages({
     "any.required": "Name is required.",
   }),
@@ -27,5 +27,3 @@ const recommendSchema = Joi.object({
       "any.required": "Category is required.",
     }),
 });
-
-module.exports = { recommendSchema };

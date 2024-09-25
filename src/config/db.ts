@@ -1,12 +1,17 @@
-// Connection function to MongoDb, called on server.js
+import mongoose from "mongoose";
 
-const mongoose = require("mongoose");
-mongoose.set("strictQuery", false);
+// Function to connect to MongoDB
+const connectDb = (): Promise<typeof mongoose> => {
+  const mongoUri = process.env.MONGO_URI;
 
-const connectDb = () => {
+  // Ensure mongoUri is defined
+  if (!mongoUri) {
+    throw new Error("MONGO_URI is not defined in the environment variables.");
+  }
+
   return new Promise((resolve, reject) => {
     mongoose
-      .connect(process.env.MONGO_URI)
+      .connect(mongoUri)
       .then((db) => {
         console.log(
           "-------------------------------------------------------------".cyan
@@ -23,4 +28,4 @@ const connectDb = () => {
   });
 };
 
-module.exports = connectDb;
+export default connectDb;
