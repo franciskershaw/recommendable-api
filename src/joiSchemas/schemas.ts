@@ -7,7 +7,7 @@ import {
   CATEGORY_PLACES,
 } from "../utils/constants";
 
-export const recommendSchema = Joi.object({
+export const newRecommendSchema = Joi.object({
   name: Joi.string().required().messages({
     "any.required": "Name is required.",
   }),
