@@ -7,12 +7,14 @@ import {
   CATEGORY_PLACES,
 } from "../utils/constants";
 
-export const newRecommendSchema = Joi.object({
-  name: Joi.string().required().messages({
-    "any.required": "Name is required.",
+const newRecommendSchema = Joi.object({
+  name: Joi.string().trim().max(50).required().messages({
+    "string.empty": "Please add a name",
+    "string.max": "Name cannot be more than 50 characters",
   }),
-  recommendedBy: Joi.string().required().messages({
-    "any.required": "RecommendedBy is required.",
+  recommendedBy: Joi.string().trim().max(50).required().messages({
+    "string.empty": "Please add a recommendedBy",
+    "string.max": "Name cannot be more than 50 characters",
   }),
   category: Joi.string()
     .valid(
@@ -24,6 +26,9 @@ export const newRecommendSchema = Joi.object({
     )
     .required()
     .messages({
-      "any.required": "Category is required.",
+      "any.only": "Category must be one of the predefined values",
+      "string.empty": "Category is required",
     }),
 });
+
+export default newRecommendSchema;

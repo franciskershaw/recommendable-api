@@ -24,7 +24,6 @@ export const getUserInfo = async (
     }
 
     const accessToken = generateAccessToken(user);
-    console.log(accessToken);
 
     // Return the user information along with the access token
     res.json({ ...userInfo, accessToken });
