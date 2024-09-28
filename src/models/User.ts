@@ -1,8 +1,8 @@
 import mongoose, { Document, Model } from "mongoose";
 
 // Define an interface for the User document
-export interface IUser extends Document {
-  _id: string;
+export interface IUser {
+  _id: mongoose.Types.ObjectId;
   email: string;
   googleId?: string;
   password?: string;

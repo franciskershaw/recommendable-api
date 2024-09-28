@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import Recommend, { IRecommend } from "../models/Recommend";
 import validateRequest from "../joiSchemas/validate";
 import { newRecommendSchema } from "../joiSchemas/schemas"; // Updated name as requested
-import { IUser } from "../models/User";
+import User, { IUser } from "../models/User";
 import {
   CATEGORY_FILMS,
   CATEGORY_TV,
@@ -58,9 +58,15 @@ export const createRecommend = async (
   session.startTransaction();
 
   try {
-    const user = req.user as IUser;
+    const userId = (req.user as IUser)._id;
 
-    const { value } = validateRequest(req.body, newRecommendSchema);
+    const user = await User.findById(userId).session(session);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const value = validateRequest(req.body, newRecommendSchema);
     const { name, recommendedBy, category } = value;
 
     const recommend = new Recommend({
