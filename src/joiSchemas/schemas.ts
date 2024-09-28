@@ -7,7 +7,7 @@ import {
   CATEGORY_PLACES,
 } from "../utils/constants";
 
-const newRecommendSchema = Joi.object({
+export const newRecommendSchema = Joi.object({
   name: Joi.string().trim().max(50).required().messages({
     "string.empty": "Please add a name",
     "string.max": "Name cannot be more than 50 characters",
@@ -30,5 +30,3 @@ const newRecommendSchema = Joi.object({
       "string.empty": "Category is required",
     }),
 });
-
-export default newRecommendSchema;

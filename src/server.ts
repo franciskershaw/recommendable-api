@@ -11,7 +11,7 @@ import morgan from "morgan";
 import passport from "./config/passport";
 import authRoutes from "./routes/auth";
 import userRoutes from "./routes/users";
-import recommendRoutes from "./routes/recommend";
+import recommendRoutes from "./routes/recommends";
 
 const PORT = process.env.PORT || 5400;
 
@@ -48,7 +48,7 @@ app.use(passport.initialize());
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
-app.use("/api/recommend", recommendRoutes);
+app.use("/api/recommends", recommendRoutes);
 
 app.get("/", (_, res) => {
   res.status(200).json({ message: "Welcome to the recommendable API" });

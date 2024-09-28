@@ -1,5 +1,5 @@
 import express from "express";
-import { getRecommends, createRecommend } from "../controllers/recommend";
+import { getRecommends, createRecommend } from "../controllers/recommends";
 import { authenticateToken } from "../middleware/authMiddleware";
 
 const router = express.Router();
@@ -8,6 +8,6 @@ const router = express.Router();
 router.get("/", authenticateToken, getRecommends);
 
 // Create a new recommendation
-router.post("/", authenticateToken, createRecommend);
+router.post("/", createRecommend);
 
 export default router;
