@@ -12,8 +12,7 @@ export const newRecommendSchema = Joi.object({
     "string.empty": "Please add a name",
     "string.max": "Name cannot be more than 50 characters",
   }),
-  recommendedBy: Joi.string().trim().max(50).required().messages({
-    "string.empty": "Please add a recommendedBy",
+  recommendedBy: Joi.string().trim().max(50).default("").messages({
     "string.max": "Name cannot be more than 50 characters",
   }),
   category: Joi.string()
