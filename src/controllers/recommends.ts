@@ -3,6 +3,14 @@ import Recommend, { IRecommend } from "../models/Recommend";
 import validateRequest from "../joiSchemas/validate";
 import { newRecommendSchema } from "../joiSchemas/schemas"; // Updated name as requested
 import { IUser } from "../models/User";
+import {
+  CATEGORY_FILMS,
+  CATEGORY_TV,
+  CATEGORY_MUSIC,
+  CATEGORY_EVENTS,
+  CATEGORY_PLACES,
+} from "../utils/constants";
+import mongoose from "mongoose";
 
 // Get all recommendations for a user
 export const getRecommends = async (
@@ -16,7 +24,25 @@ export const getRecommends = async (
 
     const recommends = await Recommend.find({ _id: { $in: recommendsIds } });
 
-    res.status(200).json(recommends);
+    const categorisedRecommends = recommends.reduce(
+      (acc, recommend) => {
+        return {
+          ...acc,
+          [recommend.category]: acc[recommend.category].concat(
+            recommend.toObject()
+          ),
+        };
+      },
+      {
+        [CATEGORY_FILMS]: [],
+        [CATEGORY_TV]: [],
+        [CATEGORY_MUSIC]: [],
+        [CATEGORY_EVENTS]: [],
+        [CATEGORY_PLACES]: [],
+      }
+    );
+
+    res.status(200).json(categorisedRecommends);
   } catch (err) {
     next(err);
   }
@@ -28,29 +54,34 @@ export const createRecommend = async (
   res: Response,
   next: NextFunction
 ) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const user = req.user as IUser;
 
-    // Validate request body
     const { value } = validateRequest(req.body, newRecommendSchema);
     const { name, recommendedBy, category } = value;
 
-    // Create new recommend document
     const recommend = new Recommend({
       name,
       recommendedBy,
       category,
     }) as IRecommend;
 
-    // Add the recommend ID to the user's recommends list
+    await recommend.save({ session });
+
     user.recommends.push(recommend._id);
 
-    // Save the recommend and update the user
-    await user.save();
-    await recommend.save();
+    await user.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
 
     res.status(200).json(recommend);
   } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
     next(err);
   }
 };
