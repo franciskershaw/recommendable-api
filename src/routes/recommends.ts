@@ -8,6 +8,6 @@ const router = express.Router();
 router.get("/", authenticateToken, getRecommends);
 
 // Create a new recommendation
-router.post("/", createRecommend);
+router.post("/", authenticateToken, createRecommend);
 
 export default router;
