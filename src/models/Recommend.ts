@@ -21,30 +21,37 @@ export interface IRecommend extends Document {
 }
 
 // Create the schema
-const RecommendSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, "Please add a name"],
-    trim: true,
-    maxlength: [50, "Name can not be more than 50 characters"],
+const RecommendSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, "Please add a name"],
+      trim: true,
+      maxlength: [50, "Name can not be more than 50 characters"],
+    },
+    recommendedBy: {
+      type: String,
+      required: [true, "Please add a recommendedBy"],
+      trim: true,
+      maxlength: [50, "Name can not be more than 50 characters"],
+    },
+    category: {
+      type: String,
+      enum: [
+        CATEGORY_FILMS,
+        CATEGORY_TV,
+        CATEGORY_MUSIC,
+        CATEGORY_EVENTS,
+        CATEGORY_PLACES,
+      ],
+    },
+    isArchived: {
+      type: Boolean,
+      default: false,
+    },
   },
-  recommendedBy: {
-    type: String,
-    required: [true, "Please add a recommendedBy"],
-    trim: true,
-    maxlength: [50, "Name can not be more than 50 characters"],
-  },
-  category: {
-    type: String,
-    enum: [
-      CATEGORY_FILMS,
-      CATEGORY_TV,
-      CATEGORY_MUSIC,
-      CATEGORY_EVENTS,
-      CATEGORY_PLACES,
-    ],
-  },
-});
+  { timestamps: true }
+);
 
 const Recommend: Model<IRecommend> = mongoose.model<IRecommend>(
   "Recommend",
