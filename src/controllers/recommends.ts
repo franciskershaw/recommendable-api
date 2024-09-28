@@ -19,7 +19,14 @@ export const getRecommends = async (
   next: NextFunction
 ) => {
   try {
-    const user = req.user as IUser;
+    const userId = (req.user as IUser)._id;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
     const recommendsIds = user.recommends;
 
     const recommends = await Recommend.find({ _id: { $in: recommendsIds } });
