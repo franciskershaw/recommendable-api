@@ -99,6 +99,7 @@ export const createRecommend = async (
   }
 };
 
+// Edit an existing recommendation
 export const editRecommend = async (
   req: Request,
   res: Response,
@@ -138,6 +139,57 @@ export const editRecommend = async (
     session.endSession();
 
     res.status(200).json(recommend);
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    next(err);
+  }
+};
+
+// Delete a recommendation
+export const deleteRecommend = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const userId = (req.user as IUser)._id;
+    const recommendId = req.params.id;
+
+    const user = await User.findById(userId).session(session);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (!user.recommends.includes(recommendId)) {
+      throw new Error("Recommendation not found for the user");
+    }
+
+    // Remove the recommendation from the user's list
+    user.recommends = user.recommends.filter(
+      (id) => id.toString() !== recommendId
+    );
+
+    // Save the updated user
+    await user.save({ session });
+
+    // Delete the recommendation document
+    const recommend = await Recommend.findByIdAndDelete(recommendId).session(
+      session
+    );
+
+    if (!recommend) {
+      throw new Error("Recommendation not found");
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.status(200).json({ message: "Recommendation successfully deleted" });
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
