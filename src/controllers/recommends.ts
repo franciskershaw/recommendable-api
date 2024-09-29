@@ -104,7 +104,11 @@ export const createRecommend = async (
     }
 
     const value = validateRequest(req.body, newRecommendSchema);
-    const { name, recommendedBy, category } = value;
+    let { name, recommendedBy, category } = value;
+
+    if (!recommendedBy || recommendedBy.trim() === "") {
+      recommendedBy = user.name;
+    }
 
     const recommend = new Recommend({
       name,
@@ -153,7 +157,11 @@ export const editRecommend = async (
     }
 
     const value = validateRequest(req.body, editRecommendSchema);
-    const { name, recommendedBy } = value;
+    let { name, recommendedBy } = value;
+
+    if (!recommendedBy || recommendedBy.trim() === "") {
+      recommendedBy = user.name;
+    }
 
     const recommend = await Recommend.findByIdAndUpdate(
       recommendId,

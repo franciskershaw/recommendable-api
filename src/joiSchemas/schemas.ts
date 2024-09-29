@@ -12,9 +12,15 @@ export const newRecommendSchema = Joi.object({
     "string.empty": "Please add a name",
     "string.max": "Name cannot be more than 50 characters",
   }),
-  recommendedBy: Joi.string().trim().max(50).default("").messages({
-    "string.max": "Name cannot be more than 50 characters",
-  }),
+  recommendedBy: Joi.string()
+    .trim()
+    .max(50)
+    .optional()
+    .allow("")
+    .default("")
+    .messages({
+      "string.max": "Name cannot be more than 50 characters",
+    }),
   category: Joi.string()
     .valid(
       CATEGORY_FILMS,
@@ -35,7 +41,13 @@ export const editRecommendSchema = Joi.object({
     "string.empty": "Please add a name",
     "string.max": "Name cannot be more than 50 characters",
   }),
-  recommendedBy: Joi.string().trim().max(50).default("").messages({
-    "string.max": "Name cannot be more than 50 characters",
-  }),
+  recommendedBy: Joi.string()
+    .trim()
+    .max(50)
+    .optional()
+    .allow("")
+    .default("")
+    .messages({
+      "string.max": "Name cannot be more than 50 characters",
+    }),
 });
