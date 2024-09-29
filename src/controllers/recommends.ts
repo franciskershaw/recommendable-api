@@ -12,7 +12,45 @@ import {
 } from "../utils/constants";
 import mongoose from "mongoose";
 
-// Get all recommendations for a user
+const getCategorisedRecommends = async (
+  userId: mongoose.Types.ObjectId,
+  isArchived: boolean
+) => {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  const recommendsIds = user.recommends;
+
+  const recommends = await Recommend.find({
+    _id: { $in: recommendsIds },
+    isArchived,
+  });
+
+  const categorisedRecommends = recommends.reduce(
+    (acc, recommend) => {
+      return {
+        ...acc,
+        [recommend.category]: acc[recommend.category].concat(
+          recommend.toObject()
+        ),
+      };
+    },
+    {
+      [CATEGORY_FILMS]: [],
+      [CATEGORY_TV]: [],
+      [CATEGORY_MUSIC]: [],
+      [CATEGORY_EVENTS]: [],
+      [CATEGORY_PLACES]: [],
+    }
+  );
+
+  return categorisedRecommends;
+};
+
+// Get all non-archived recommendations for a user
 export const getRecommends = async (
   req: Request,
   res: Response,
@@ -20,36 +58,28 @@ export const getRecommends = async (
 ) => {
   try {
     const userId = (req.user as IUser)._id;
-
-    const user = await User.findById(userId);
-
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    const recommendsIds = user.recommends;
-
-    const recommends = await Recommend.find({ _id: { $in: recommendsIds } });
-
-    const categorisedRecommends = recommends.reduce(
-      (acc, recommend) => {
-        return {
-          ...acc,
-          [recommend.category]: acc[recommend.category].concat(
-            recommend.toObject()
-          ),
-        };
-      },
-      {
-        [CATEGORY_FILMS]: [],
-        [CATEGORY_TV]: [],
-        [CATEGORY_MUSIC]: [],
-        [CATEGORY_EVENTS]: [],
-        [CATEGORY_PLACES]: [],
-      }
-    );
+    const categorisedRecommends = await getCategorisedRecommends(userId, false);
 
     res.status(200).json(categorisedRecommends);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Get all archived recommendations for a user
+export const getArchivedRecommends = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = (req.user as IUser)._id;
+    const categorisedArchivedRecommends = await getCategorisedRecommends(
+      userId,
+      true
+    );
+
+    res.status(200).json(categorisedArchivedRecommends);
   } catch (err) {
     next(err);
   }
@@ -193,6 +223,78 @@ export const deleteRecommend = async (
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
+    next(err);
+  }
+};
+
+// Archive a recommendation
+export const archiveRecommend = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = (req.user as IUser)._id;
+    const recommendId = req.params.id;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (!user.recommends.includes(recommendId)) {
+      throw new Error("Recommendation not found for the user");
+    }
+
+    const recommend = await Recommend.findByIdAndUpdate(
+      recommendId,
+      { isArchived: true },
+      { new: true }
+    );
+
+    if (!recommend) {
+      throw new Error("Recommendation not found");
+    }
+
+    res.status(200).json(recommend);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Unarchive a recommendation
+export const unarchiveRecommend = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = (req.user as IUser)._id;
+    const recommendId = req.params.id;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (!user.recommends.includes(recommendId)) {
+      throw new Error("Recommendation not found for the user");
+    }
+
+    const recommend = await Recommend.findByIdAndUpdate(
+      recommendId,
+      { isArchived: false },
+      { new: true }
+    );
+
+    if (!recommend) {
+      throw new Error("Recommendation not found");
+    }
+
+    res.status(200).json(recommend);
+  } catch (err) {
     next(err);
   }
 };
