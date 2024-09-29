@@ -10,4 +10,6 @@ router.get("/", authenticateToken, getRecommends);
 // Create a new recommendation
 router.post("/", authenticateToken, createRecommend);
 
+router.put("/:id", authenticateToken, createRecommend);
+
 export default router;

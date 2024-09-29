@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import Recommend, { IRecommend } from "../models/Recommend";
 import validateRequest from "../joiSchemas/validate";
-import { newRecommendSchema } from "../joiSchemas/schemas"; // Updated name as requested
+import { newRecommendSchema, editRecommendSchema } from "../joiSchemas/schemas";
 import User, { IUser } from "../models/User";
 import {
   CATEGORY_FILMS,
@@ -87,6 +87,52 @@ export const createRecommend = async (
     user.recommends.push(recommend._id);
 
     await user.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.status(200).json(recommend);
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    next(err);
+  }
+};
+
+export const editRecommend = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const userId = (req.user as IUser)._id;
+    const recommendId = req.params.id;
+
+    const user = await User.findById(userId).session(session);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (!user.recommends.includes(recommendId)) {
+      throw new Error("Recommendation not found for the user");
+    }
+
+    const value = validateRequest(req.body, editRecommendSchema);
+    const { name, recommendedBy } = value;
+
+    const recommend = await Recommend.findByIdAndUpdate(
+      recommendId,
+      { name, recommendedBy },
+      { new: true, session }
+    );
+
+    if (!recommend) {
+      throw new Error("Recommendation not found");
+    }
 
     await session.commitTransaction();
     session.endSession();
