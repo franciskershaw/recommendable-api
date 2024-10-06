@@ -1,6 +1,12 @@
 import mongoose, { Document, Model } from "mongoose";
+import {
+  CATEGORY_FILMS,
+  CATEGORY_TV,
+  CATEGORY_MUSIC,
+  CATEGORY_EVENTS,
+  CATEGORY_PLACES,
+} from "../utils/constants";
 
-// Define an interface for the User document
 export interface IUser {
   _id: mongoose.Types.ObjectId;
   email: string;
@@ -8,11 +14,24 @@ export interface IUser {
   password?: string;
   name?: string;
   role: "user" | "admin";
-  recommends: string[];
+  recommends: {
+    [key in
+      | typeof CATEGORY_FILMS
+      | typeof CATEGORY_TV
+      | typeof CATEGORY_MUSIC
+      | typeof CATEGORY_EVENTS
+      | typeof CATEGORY_PLACES]: mongoose.Types.ObjectId[];
+  };
   provider: "google" | "local";
 }
 
-// Create the schema
+const categorySchemaDefinition = () => [
+  {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Recommend",
+  },
+];
+
 const UserSchema = new mongoose.Schema(
   {
     email: {
@@ -40,12 +59,13 @@ const UserSchema = new mongoose.Schema(
       enum: ["user", "admin"],
       default: "user",
     },
-    recommends: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Recommend",
-      },
-    ],
+    recommends: {
+      [CATEGORY_FILMS]: categorySchemaDefinition(),
+      [CATEGORY_TV]: categorySchemaDefinition(),
+      [CATEGORY_MUSIC]: categorySchemaDefinition(),
+      [CATEGORY_EVENTS]: categorySchemaDefinition(),
+      [CATEGORY_PLACES]: categorySchemaDefinition(),
+    },
     provider: {
       type: String,
       enum: ["google", "local"],
@@ -55,6 +75,5 @@ const UserSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Export the model with the IUser type
 const User: Model<IUser> = mongoose.model<IUser>("User", UserSchema);
 export default User;

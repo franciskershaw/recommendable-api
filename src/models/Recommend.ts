@@ -9,7 +9,7 @@ import {
 
 // Define an interface for the Recommend document
 export interface IRecommend extends Document {
-  _id: string;
+  _id: mongoose.Types.ObjectId;
   name: string;
   recommendedBy: string;
   category:

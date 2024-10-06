@@ -1,7 +1,6 @@
 import express from "express";
 import {
   getRecommends,
-  getArchivedRecommends,
   createRecommend,
   editRecommend,
   deleteRecommend,
@@ -14,7 +13,6 @@ const router = express.Router();
 
 // Get recommendations
 router.get("/", authenticateToken, getRecommends);
-router.get("/archived", authenticateToken, getArchivedRecommends);
 
 // Create a new recommendation
 router.post("/", authenticateToken, createRecommend);

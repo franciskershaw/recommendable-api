@@ -12,45 +12,7 @@ import {
 } from "../utils/constants";
 import mongoose from "mongoose";
 
-const getCategorisedRecommends = async (
-  userId: mongoose.Types.ObjectId,
-  isArchived: boolean
-) => {
-  const user = await User.findById(userId);
-
-  if (!user) {
-    throw new Error("User not found");
-  }
-
-  const recommendsIds = user.recommends;
-
-  const recommends = await Recommend.find({
-    _id: { $in: recommendsIds },
-    isArchived,
-  });
-
-  const categorisedRecommends = recommends.reduce(
-    (acc, recommend) => {
-      return {
-        ...acc,
-        [recommend.category]: acc[recommend.category].concat(
-          recommend.toObject()
-        ),
-      };
-    },
-    {
-      [CATEGORY_FILMS]: [],
-      [CATEGORY_TV]: [],
-      [CATEGORY_MUSIC]: [],
-      [CATEGORY_EVENTS]: [],
-      [CATEGORY_PLACES]: [],
-    }
-  );
-
-  return categorisedRecommends;
-};
-
-// Get all non-archived recommendations for a user
+// Get all recommendations (non-archived or archived) for a user
 export const getRecommends = async (
   req: Request,
   res: Response,
@@ -58,28 +20,43 @@ export const getRecommends = async (
 ) => {
   try {
     const userId = (req.user as IUser)._id;
-    const categorisedRecommends = await getCategorisedRecommends(userId, false);
+    const isArchived = req.query.isArchived === "true";
+
+    const user = await User.findById(userId)
+      .populate({
+        path: "recommends.films",
+        match: { isArchived },
+      })
+      .populate({
+        path: "recommends.tv",
+        match: { isArchived },
+      })
+      .populate({
+        path: "recommends.music",
+        match: { isArchived },
+      })
+      .populate({
+        path: "recommends.events",
+        match: { isArchived },
+      })
+      .populate({
+        path: "recommends.places",
+        match: { isArchived },
+      });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const categorisedRecommends = {
+      [CATEGORY_FILMS]: user.recommends.films,
+      [CATEGORY_TV]: user.recommends.tv,
+      [CATEGORY_MUSIC]: user.recommends.music,
+      [CATEGORY_EVENTS]: user.recommends.events,
+      [CATEGORY_PLACES]: user.recommends.places,
+    };
 
     res.status(200).json(categorisedRecommends);
-  } catch (err) {
-    next(err);
-  }
-};
-
-// Get all archived recommendations for a user
-export const getArchivedRecommends = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const userId = (req.user as IUser)._id;
-    const categorisedArchivedRecommends = await getCategorisedRecommends(
-      userId,
-      true
-    );
-
-    res.status(200).json(categorisedArchivedRecommends);
   } catch (err) {
     next(err);
   }
@@ -96,7 +73,6 @@ export const createRecommend = async (
 
   try {
     const userId = (req.user as IUser)._id;
-
     const user = await User.findById(userId).session(session);
 
     if (!user) {
@@ -104,7 +80,8 @@ export const createRecommend = async (
     }
 
     const value = validateRequest(req.body, newRecommendSchema);
-    let { name, recommendedBy, category } = value;
+    const { name, category } = value;
+    let { recommendedBy } = value;
 
     if (!recommendedBy || recommendedBy.trim() === "") {
       recommendedBy = user.name;
@@ -118,7 +95,8 @@ export const createRecommend = async (
 
     await recommend.save({ session });
 
-    user.recommends.push(recommend._id);
+    const validCategory = category as keyof typeof user.recommends;
+    user.recommends[validCategory].push(recommend._id);
 
     await user.save({ session });
 
@@ -146,22 +124,23 @@ export const editRecommend = async (
     const userId = (req.user as IUser)._id;
     const recommendId = req.params.id;
 
-    const user = await User.findById(userId).session(session);
+    const user = await User.findOne({
+      _id: userId,
+      $or: [
+        { "recommends.films": recommendId },
+        { "recommends.tv": recommendId },
+        { "recommends.music": recommendId },
+        { "recommends.events": recommendId },
+        { "recommends.places": recommendId },
+      ],
+    }).session(session);
 
     if (!user) {
-      throw new Error("User not found");
-    }
-
-    if (!user.recommends.includes(recommendId)) {
       throw new Error("Recommendation not found for the user");
     }
 
     const value = validateRequest(req.body, editRecommendSchema);
-    let { name, recommendedBy } = value;
-
-    if (!recommendedBy || recommendedBy.trim() === "") {
-      recommendedBy = user.name;
-    }
+    const { name, recommendedBy } = value;
 
     const recommend = await Recommend.findByIdAndUpdate(
       recommendId,
@@ -184,7 +163,6 @@ export const editRecommend = async (
   }
 };
 
-// Delete a recommendation
 export const deleteRecommend = async (
   req: Request,
   res: Response,
@@ -197,23 +175,32 @@ export const deleteRecommend = async (
     const userId = (req.user as IUser)._id;
     const recommendId = req.params.id;
 
-    const user = await User.findById(userId).session(session);
-
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    if (!user.recommends.includes(recommendId)) {
-      throw new Error("Recommendation not found for the user");
-    }
-
-    // Remove the recommendation from the user's list
-    user.recommends = user.recommends.filter(
-      (id) => id.toString() !== recommendId
+    const user = await User.findOneAndUpdate(
+      {
+        _id: userId,
+        $or: [
+          { "recommends.films": recommendId },
+          { "recommends.tv": recommendId },
+          { "recommends.music": recommendId },
+          { "recommends.events": recommendId },
+          { "recommends.places": recommendId },
+        ],
+      },
+      {
+        $pull: {
+          "recommends.films": recommendId,
+          "recommends.tv": recommendId,
+          "recommends.music": recommendId,
+          "recommends.events": recommendId,
+          "recommends.places": recommendId,
+        },
+      },
+      { new: true, session }
     );
 
-    // Save the updated user
-    await user.save({ session });
+    if (!user) {
+      throw new Error("Recommendation not found for the user");
+    }
 
     // Delete the recommendation document
     const recommend = await Recommend.findByIdAndDelete(recommendId).session(
@@ -245,13 +232,18 @@ export const archiveRecommend = async (
     const userId = (req.user as IUser)._id;
     const recommendId = req.params.id;
 
-    const user = await User.findById(userId);
+    const user = await User.findOne({
+      _id: userId,
+      $or: [
+        { "recommends.films": recommendId },
+        { "recommends.tv": recommendId },
+        { "recommends.music": recommendId },
+        { "recommends.events": recommendId },
+        { "recommends.places": recommendId },
+      ],
+    });
 
     if (!user) {
-      throw new Error("User not found");
-    }
-
-    if (!user.recommends.includes(recommendId)) {
       throw new Error("Recommendation not found for the user");
     }
 
@@ -281,13 +273,18 @@ export const unarchiveRecommend = async (
     const userId = (req.user as IUser)._id;
     const recommendId = req.params.id;
 
-    const user = await User.findById(userId);
+    const user = await User.findOne({
+      _id: userId,
+      $or: [
+        { "recommends.films": recommendId },
+        { "recommends.tv": recommendId },
+        { "recommends.music": recommendId },
+        { "recommends.events": recommendId },
+        { "recommends.places": recommendId },
+      ],
+    });
 
     if (!user) {
-      throw new Error("User not found");
-    }
-
-    if (!user.recommends.includes(recommendId)) {
       throw new Error("Recommendation not found for the user");
     }
 
