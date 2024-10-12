@@ -5,9 +5,11 @@ import {
   CATEGORY_MUSIC,
   CATEGORY_EVENTS,
   CATEGORY_PLACES,
+  SORT_BY_MOST_RECENT,
+  SORT_OPTIONS,
 } from "../utils/constants";
 
-export interface IUser {
+export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
   email: string;
   googleId?: string;
@@ -23,6 +25,14 @@ export interface IUser {
       | typeof CATEGORY_PLACES]: mongoose.Types.ObjectId[];
   };
   provider: "google" | "local";
+  sortPreferences: {
+    [key in
+      | typeof CATEGORY_FILMS
+      | typeof CATEGORY_TV
+      | typeof CATEGORY_MUSIC
+      | typeof CATEGORY_EVENTS
+      | typeof CATEGORY_PLACES]?: (typeof SORT_OPTIONS)[number];
+  };
 }
 
 const categorySchemaDefinition = () => [
@@ -70,6 +80,33 @@ const UserSchema = new mongoose.Schema(
       type: String,
       enum: ["google", "local"],
       required: true,
+    },
+    sortPreferences: {
+      [CATEGORY_FILMS]: {
+        type: String,
+        enum: SORT_OPTIONS,
+        default: SORT_BY_MOST_RECENT,
+      },
+      [CATEGORY_TV]: {
+        type: String,
+        enum: SORT_OPTIONS,
+        default: SORT_BY_MOST_RECENT,
+      },
+      [CATEGORY_MUSIC]: {
+        type: String,
+        enum: SORT_OPTIONS,
+        default: SORT_BY_MOST_RECENT,
+      },
+      [CATEGORY_EVENTS]: {
+        type: String,
+        enum: SORT_OPTIONS,
+        default: SORT_BY_MOST_RECENT,
+      },
+      [CATEGORY_PLACES]: {
+        type: String,
+        enum: SORT_OPTIONS,
+        default: SORT_BY_MOST_RECENT,
+      },
     },
   },
   { timestamps: true }
