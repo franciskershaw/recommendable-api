@@ -43,7 +43,7 @@ export const googleCallback = (req: Request, res: Response) => {
       secure: process.env.NODE_ENV === "production",
     });
 
-    res.redirect(`${process.env.FRONTEND_URL}films`);
+    res.redirect(`${process.env.FRONTEND_URL}`);
   } catch (err) {
     console.error("Error during Google callback:", err);
     res.status(500).json({
