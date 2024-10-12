@@ -26,22 +26,27 @@ export const getRecommends = async (
       .populate({
         path: "recommends.films",
         match: { isArchived },
+        options: { sort: { createdAt: -1 } },
       })
       .populate({
         path: "recommends.tv",
         match: { isArchived },
+        options: { sort: { createdAt: -1 } },
       })
       .populate({
         path: "recommends.music",
         match: { isArchived },
+        options: { sort: { createdAt: -1 } },
       })
       .populate({
         path: "recommends.events",
         match: { isArchived },
+        options: { sort: { createdAt: -1 } },
       })
       .populate({
         path: "recommends.places",
         match: { isArchived },
+        options: { sort: { createdAt: -1 } },
       });
 
     if (!user) {
