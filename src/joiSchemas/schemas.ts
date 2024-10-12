@@ -5,6 +5,7 @@ import {
   CATEGORY_MUSIC,
   CATEGORY_EVENTS,
   CATEGORY_PLACES,
+  SORT_OPTIONS,
 } from "../utils/constants";
 
 export const newRecommendSchema = Joi.object({
@@ -49,5 +50,46 @@ export const editRecommendSchema = Joi.object({
     .default("")
     .messages({
       "string.max": "Name cannot be more than 50 characters",
+    }),
+});
+
+export const updateUserPreferencesSchema = Joi.object({
+  sortPreferences: Joi.object({
+    [CATEGORY_FILMS]: Joi.string()
+      .valid(...SORT_OPTIONS)
+      .optional()
+      .messages({
+        "any.only": "Invalid sorting option for films",
+      }),
+    [CATEGORY_TV]: Joi.string()
+      .valid(...SORT_OPTIONS)
+      .optional()
+      .messages({
+        "any.only": "Invalid sorting option for TV",
+      }),
+    [CATEGORY_MUSIC]: Joi.string()
+      .valid(...SORT_OPTIONS)
+      .optional()
+      .messages({
+        "any.only": "Invalid sorting option for music",
+      }),
+    [CATEGORY_EVENTS]: Joi.string()
+      .valid(...SORT_OPTIONS)
+      .optional()
+      .messages({
+        "any.only": "Invalid sorting option for events",
+      }),
+    [CATEGORY_PLACES]: Joi.string()
+      .valid(...SORT_OPTIONS)
+      .optional()
+      .messages({
+        "any.only": "Invalid sorting option for places",
+      }),
+  })
+    .min(1)
+    .required()
+    .messages({
+      "object.min": "At least one sort preference must be provided",
+      "object.base": "Sort preferences must be provided",
     }),
 });
