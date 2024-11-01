@@ -1,0 +1,40 @@
+# Node modules - these are installed fresh in the container
+node_modules
+
+# Build artifacts and output folders
+dist
+build
+
+# Environment files - contain sensitive data and are not needed in the image
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Docker and Docker Compose files - not needed inside the image
+Dockerfile
+docker-compose.yml
+docker-compose.override.yml
+
+# Git and version control files
+.git
+.gitignore
+.gitattributes
+
+# Logs and temporary files
+npm-debug.log
+yarn-error.log
+*.log
+
+# Local IDE/editor configurations
+.vscode
+.idea
+*.swp
+
+# Coverage and testing output
+coverage
+*.test.js
+*.spec.js
+__tests__
+__mocks__
