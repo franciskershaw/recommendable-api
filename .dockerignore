@@ -38,3 +38,42 @@ coverage
 *.spec.js
 __tests__
 __mocks__
+
+# Additional Docker-related files
+Dockerfile.dev
+.dockerignore
+
+# TypeScript source maps
+*.map
+*.tsbuildinfo
+
+# Development configurations
+nodemon.json
+tsconfig.json
+.prettierrc
+.eslintrc
+.eslintignore
+
+# Additional npm files
+.npm
+.npmrc
+package-lock.json.tmp
+
+# Additional IDE/editor files
+.settings/
+*.sublime-workspace
+*.sublime-project
+.history/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary development files
+tmp/
+temp/
