@@ -49,7 +49,6 @@ Dockerfile.dev
 
 # Development configurations
 nodemon.json
-tsconfig.json
 .prettierrc
 .eslintrc
 .eslintignore

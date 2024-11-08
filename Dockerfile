@@ -1,17 +1,18 @@
 # Build stage - Compiles TypeScript to JavaScript
-FROM node:22.5.1-alpine as builder
+FROM node:22.5.1-alpine AS builder
 
 # Set working directory for build stage
 WORKDIR /usr/src/app
 
-# Copy package files first to leverage Docker cache
+# Copy package files and TypeScript config
 COPY package*.json ./
+COPY tsconfig.json ./
 
-# Install all dependencies including devDependencies
+# Install ALL dependencies
 RUN npm install
 
-# Copy all source code
-COPY . .
+# Copy source code
+COPY src/ ./src/
 
 # Build TypeScript into JavaScript
 RUN npm run build
