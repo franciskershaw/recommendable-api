@@ -7,7 +7,7 @@ on:
 
 # Add environment variables at workflow level
 env:
-  DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/recommendable-api
+  DOCKER_IMAGE: docker.io/${{ secrets.DOCKER_USERNAME }}/recommendable-api
   DOMAIN: api.recommendableapp.co.uk
 
 jobs:
@@ -18,9 +18,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Debug Docker credentials
+        run: |
+          echo "Docker username secret exists: ${{ secrets.DOCKER_USERNAME != '' }}"
+          echo "Docker password secret exists: ${{ secrets.DOCKER_PASSWORD != '' }}"
+          echo "DOCKER_IMAGE value: ${{ env.DOCKER_IMAGE }}"
+
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
+          registry: docker.io
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
         timeout-minutes: 5
