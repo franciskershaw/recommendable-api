@@ -31,6 +31,9 @@ COPY package*.json ./
 # Install only production dependencies
 RUN npm install --production
 
+# Install curl for health checks
+RUN apk --no-cache add curl
+
 # Copy built JavaScript files from builder stage
 COPY --from=builder /usr/src/app/dist ./dist
 
