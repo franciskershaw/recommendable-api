@@ -75,25 +75,18 @@ jobs:
           username: ${{ secrets.DO_USERNAME }}
           key: ${{ secrets.DO_SSH_KEY }}
           script_stop: true
+          envs: DOMAIN,PORT
           script: |
-            set -e
-
             DOMAIN="api.recommendableapp.co.uk"
-            NGINX_CONFIG="/etc/nginx/sites-available/$DOMAIN"
-            NGINX_ENABLED="/etc/nginx/sites-enabled/$DOMAIN"
-            NGINX_BACKUP="${NGINX_CONFIG}.backup"
+            PORT="5400"
 
-            echo "Starting deployment process..."
+            # Remove existing config if it exists
+            sudo rm -f /etc/nginx/sites-enabled/$DOMAIN
+            sudo rm -f /etc/nginx/sites-available/$DOMAIN
 
-            # Backup existing nginx config if it exists
-            if [ -f $NGINX_CONFIG ]; then
-              cp $NGINX_CONFIG $NGINX_BACKUP
-            fi
-
-            # Create basic nginx configuration if it doesn't exist
-            if [ ! -f $NGINX_CONFIG ]; then
-              cat > "$NGINX_CONFIG" << 'EOF'
-              server {
+            # Create new config
+            sudo tee /etc/nginx/sites-available/$DOMAIN > /dev/null << 'EOF'
+            server {
                 listen 80;
                 server_name api.recommendableapp.co.uk;
 
@@ -109,17 +102,14 @@ jobs:
                   proxy_set_header X-Forwarded-Proto $scheme;
                 }
               }
-              EOF
-            fi
+            EOF
 
-            chmod 644 $NGINX_CONFIG
-            ln -sf $NGINX_CONFIG $NGINX_ENABLED
+            # Set permissions and create symlink
+            sudo chmod 644 /etc/nginx/sites-available/$DOMAIN
+            sudo ln -sf /etc/nginx/sites-available/$DOMAIN /etc/nginx/sites-enabled/
 
-            if ! nginx -t; then
-              echo "Nginx configuration test failed. Rolling back..."
-              [ -f $NGINX_BACKUP ] && mv $NGINX_BACKUP $NGINX_CONFIG
-              exit 1
-            fi
+            # Test and reload nginx
+            sudo nginx -t && sudo systemctl reload nginx
 
             if [ ! -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]; then
               echo "Setting up SSL certificate..."
