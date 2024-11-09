@@ -131,20 +131,27 @@ jobs:
               -e GOOGLE_CLIENT_SECRET='${{ secrets.GOOGLE_CLIENT_SECRET }}' \
               ${{ env.DOCKER_IMAGE }}:latest
 
-            # Let's also improve the health check
+            # Let's also improve the health check with more debugging
             echo "Waiting for container health check..."
+            echo "Initial pause to let container start..."
+            sleep 10  # Give the container more time to initialize
+
             HEALTH_CHECK_ATTEMPTS=0
             MAX_ATTEMPTS=10
 
-            until [ $HEALTH_CHECK_ATTEMPTS -eq $MAX_ATTEMPTS ] || curl -sf http://localhost:5400/health > /dev/null 2>&1; do
+            until [ $HEALTH_CHECK_ATTEMPTS -eq $MAX_ATTEMPTS ] || curl -v http://localhost:5400/health 2>&1; do
               echo "Attempt $((HEALTH_CHECK_ATTEMPTS + 1))/$MAX_ATTEMPTS: Waiting for service to be healthy..."
+              echo "Container logs:"
+              docker logs recommendable-api-new --tail 50
               HEALTH_CHECK_ATTEMPTS=$((HEALTH_CHECK_ATTEMPTS + 1))
               sleep 3
             done
 
             if [ $HEALTH_CHECK_ATTEMPTS -eq $MAX_ATTEMPTS ]; then
               echo "Health check failed after $MAX_ATTEMPTS attempts"
+              echo "Final container logs:"
               docker logs recommendable-api-new
+              docker inspect recommendable-api-new
               exit 1
             fi
 
