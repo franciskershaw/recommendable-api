@@ -102,18 +102,16 @@ jobs:
             # Deploy Docker container
             echo "Deploying Docker container..."
 
-            # Remove existing containers if they exist
-            if [ "$(docker ps -aq -f name=recommendable-api-new)" ]; then
-              echo "Removing existing recommendable-api-new container..."
-              docker stop recommendable-api-new || true
-              docker rm recommendable-api-new || true
-            fi
+            # Clean up any existing containers
+            echo "Cleaning up existing containers..."
+            docker stop recommendable-api recommendable-api-new || true
+            docker rm recommendable-api recommendable-api-new || true
 
             echo "Pulling latest image..."
             docker pull ${{ env.DOCKER_IMAGE }}:latest
 
             echo "Starting new container..."
-            NEW_CONTAINER_ID=$(docker run -d \
+            docker run -d \
               --name recommendable-api-new \
               --restart unless-stopped \
               --health-cmd="curl -f http://localhost:5400/health || exit 1" \
@@ -130,50 +128,51 @@ jobs:
               -e JWT_REFRESH_SECRET='${{ secrets.JWT_REFRESH_SECRET }}' \
               -e GOOGLE_CLIENT_ID='${{ secrets.GOOGLE_CLIENT_ID }}' \
               -e GOOGLE_CLIENT_SECRET='${{ secrets.GOOGLE_CLIENT_SECRET }}' \
-              ${{ env.DOCKER_IMAGE }}:latest)
-
-            echo "New container ID: $NEW_CONTAINER_ID"
+              ${{ env.DOCKER_IMAGE }}:latest
 
             echo "Waiting for container health check..."
             echo "Initial pause to let container start..."
-            sleep 10
+            sleep 15
 
-            # Check if container is still running
-            if ! docker ps -q | grep -q "$NEW_CONTAINER_ID"; then
-              echo "Container stopped unexpectedly"
-              docker logs "$NEW_CONTAINER_ID"
+            # Check container status and logs
+            echo "Checking container status..."
+            if ! docker ps | grep -q "recommendable-api-new"; then
+              echo "Container not running. Checking logs:"
+              docker logs recommendable-api-new
               exit 1
             fi
 
-            # Health check
+            # Health check with retry
+            echo "Starting health checks..."
             HEALTH_CHECK_ATTEMPTS=0
             MAX_ATTEMPTS=10
 
-            until [ $HEALTH_CHECK_ATTEMPTS -eq $MAX_ATTEMPTS ] || curl -v http://localhost:5400/health 2>&1; do
-              if ! docker ps -q | grep -q "$NEW_CONTAINER_ID"; then
-                echo "Container stopped during health check"
-                docker logs "$NEW_CONTAINER_ID"
+            until [ $HEALTH_CHECK_ATTEMPTS -eq $MAX_ATTEMPTS ] || curl -sf http://localhost:5400/health > /dev/null; do
+              if ! docker ps | grep -q "recommendable-api-new"; then
+                echo "Container stopped during health check. Logs:"
+                docker logs recommendable-api-new
                 exit 1
               fi
               echo "Attempt $((HEALTH_CHECK_ATTEMPTS + 1))/$MAX_ATTEMPTS: Waiting for service to be healthy..."
+              docker logs --tail 10 recommendable-api-new
               HEALTH_CHECK_ATTEMPTS=$((HEALTH_CHECK_ATTEMPTS + 1))
               sleep 3
             done
 
             if [ $HEALTH_CHECK_ATTEMPTS -eq $MAX_ATTEMPTS ]; then
-              echo "Health check failed after $MAX_ATTEMPTS attempts"
-              docker logs "$NEW_CONTAINER_ID"
+              echo "Health check failed after $MAX_ATTEMPTS attempts. Final logs:"
+              docker logs recommendable-api-new
               exit 1
             fi
 
             echo "Health check passed, swapping containers..."
-            OLD_CONTAINER_ID=$(docker ps -q -f name=recommendable-api)
-            if [ ! -z "$OLD_CONTAINER_ID" ]; then
-              docker stop "$OLD_CONTAINER_ID"
-              docker rm "$OLD_CONTAINER_ID"
-            fi
-
+            docker stop recommendable-api || true
+            docker rm recommendable-api || true
             docker rename recommendable-api-new recommendable-api
+
+            echo "Verifying final container state..."
+            docker ps | grep recommendable-api
+
             echo "Deployment completed successfully!"
 
   # Best practice: Keep the rollback job
