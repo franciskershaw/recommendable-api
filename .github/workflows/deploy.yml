@@ -11,16 +11,12 @@ env:
   DOMAIN: api.recommendableapp.co.uk
 
 jobs:
-  deploy:
+  # Add a build-and-push job that runs first
+  build:
     runs-on: ubuntu-latest
-    environment: production
-    concurrency:
-      group: production_environment
-      cancel-in-progress: true
-
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # Updated to latest version
+        uses: actions/checkout@v4
 
       - name: Login to DockerHub
         uses: docker/login-action@v3
@@ -33,18 +29,21 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Tag current production as previous
+        continue-on-error: true # Allow this step to fail on first deployment
         run: |
-          docker pull ${{ env.DOCKER_IMAGE }}:latest || true
-          if [ $? -eq 0 ]; then
+          if docker pull ${{ env.DOCKER_IMAGE }}:latest; then
+            echo "Previous version exists, creating backup tag"
             docker tag ${{ env.DOCKER_IMAGE }}:latest ${{ env.DOCKER_IMAGE }}:previous
             docker push ${{ env.DOCKER_IMAGE }}:previous
+          else
+            echo "No previous version found, skipping backup"
           fi
-        continue-on-error: true
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           push: true
+          platforms: linux/amd64
           tags: |
             ${{ env.DOCKER_IMAGE }}:latest
             ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
@@ -52,13 +51,21 @@ jobs:
           cache-to: type=gha,mode=max
         timeout-minutes: 15
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: production_environment
+      cancel-in-progress: true
+
+    steps:
       - name: Deploy to DigitalOcean and Setup SSL
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USERNAME }}
           key: ${{ secrets.DO_SSH_KEY }}
-          # Best practice: Use script_stop to exit on first error
           script_stop: true
           script: |
             set -e
@@ -163,7 +170,7 @@ jobs:
 
   # Best practice: Keep the rollback job
   rollback:
-    needs: deploy
+    needs: [build, deploy]
     if: failure()
     runs-on: ubuntu-latest
     steps:

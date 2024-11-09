@@ -1,5 +1,5 @@
 # Build stage - Compiles TypeScript to JavaScript
-FROM node:22.5.1-alpine AS builder
+FROM --platform=linux/amd64 node:22.5.1-alpine AS builder
 
 # Set working directory for build stage
 WORKDIR /usr/src/app
