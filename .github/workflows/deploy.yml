@@ -68,85 +68,53 @@ jobs:
       cancel-in-progress: true
 
     steps:
-      - name: Deploy to DigitalOcean and Setup SSL
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy Nginx configuration
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USERNAME }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          source: "nginx/recommendable-api.conf"
+          target: "/home/${{ secrets.DO_USERNAME }}"
+          
+      - name: Configure Nginx and Deploy
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USERNAME }}
           key: ${{ secrets.DO_SSH_KEY }}
           script_stop: true
-          envs: DOMAIN,PORT
           script: |
-            DOMAIN="api.recommendableapp.co.uk"
-            PORT="5400"
-
-            echo "domain = $DOMAIN"
-            echo "port = $PORT"
-
-            # Remove existing config if it exists
-            sudo rm -f /etc/nginx/sites-enabled/$DOMAIN
-            sudo rm -f /etc/nginx/sites-available/$DOMAIN
-
-            # Write nginx config using a safer method
-            sudo tee /etc/nginx/sites-available/$DOMAIN > /dev/null <<EOF
-            server {
-                listen 80;
-                server_name $DOMAIN;
-
-                location / {
-                  proxy_pass http://localhost:$PORT;
-                  proxy_http_version 1.1;
-                  proxy_set_header Upgrade \$http_upgrade;
-                  proxy_set_header Connection "upgrade";
-                  proxy_set_header Host \$host;
-                  proxy_cache_bypass \$http_upgrade;
-                  proxy_set_header X-Real-IP \$remote_addr;
-                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-                  proxy_set_header X-Forwarded-Proto \$scheme;
-                }
-            }
-            EOF
-
-            # Create symlink for sites-enabled
-            sudo ln -s /etc/nginx/sites-available/$DOMAIN /etc/nginx/sites-enabled/$DOMAIN
-
-            # Test nginx config and reload if valid
+            # Setup Nginx
+            sudo mv /home/${{ secrets.DO_USERNAME }}/nginx/recommendable-api.conf /etc/nginx/sites-available/api.recommendableapp.co.uk
+            sudo ln -sf /etc/nginx/sites-available/api.recommendableapp.co.uk /etc/nginx/sites-enabled/
             sudo nginx -t && sudo systemctl reload nginx
 
-            # Set permissions and create symlink
-            sudo chmod 644 /etc/nginx/sites-available/$DOMAIN
-            sudo ln -sf /etc/nginx/sites-available/$DOMAIN /etc/nginx/sites-enabled/
-
-            # Test and reload nginx
-            sudo nginx -t && sudo systemctl reload nginx
-
-            if [ ! -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]; then
+            # SSL Setup
+            if [ ! -f "/etc/letsencrypt/live/api.recommendableapp.co.uk/fullchain.pem" ]; then
               echo "Setting up SSL certificate..."
-              certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos --email ${{ secrets.CERTBOT_EMAIL }}
-              
-              if [ $? -ne 0 ]; then
-                echo "SSL setup failed. Rolling back nginx config..."
-                [ -f $NGINX_BACKUP ] && mv $NGINX_BACKUP $NGINX_CONFIG
-                exit 1
-              fi
+              sudo certbot --nginx -d api.recommendableapp.co.uk --non-interactive --agree-tos --email ${{ secrets.CERTBOT_EMAIL }}
             fi
 
+            # Deploy Docker container
             echo "Deploying Docker container..."
             OLD_CONTAINER_ID=$(docker ps -q -f name=recommendable-api)
 
-            docker pull ${DOCKER_IMAGE}:latest
+            docker pull ${{ env.DOCKER_IMAGE }}:latest
 
-            # Best practice: Use --restart unless-stopped for container recovery
             docker run -d \
               --name recommendable-api-new \
               --restart unless-stopped \
-              --health-cmd="curl -f http://localhost:${PORT:-5400}/health || exit 1" \
+              --health-cmd="curl -f http://localhost:5400/health || exit 1" \
               --health-interval=10s \
               --health-timeout=5s \
               --health-retries=3 \
-              -p ${PORT:-5400}:${PORT:-5400} \
+              -p 5400:5400 \
               -e NODE_ENV=production \
-              -e PORT=${PORT:-5400} \
+              -e PORT=5400 \
               -e MONGO_URI='${{ secrets.MONGO_URI }}' \
               -e CORS_ORIGIN='${{ secrets.CORS_ORIGIN }}' \
               -e FRONTEND_URL='${{ secrets.FRONTEND_URL }}' \
@@ -154,7 +122,7 @@ jobs:
               -e JWT_REFRESH_SECRET='${{ secrets.JWT_REFRESH_SECRET }}' \
               -e GOOGLE_CLIENT_ID='${{ secrets.GOOGLE_CLIENT_ID }}' \
               -e GOOGLE_CLIENT_SECRET='${{ secrets.GOOGLE_CLIENT_SECRET }}' \
-              ${DOCKER_IMAGE}:latest
+              ${{ env.DOCKER_IMAGE }}:latest
 
             echo "Waiting for container health check..."
             timeout 30s bash -c 'until docker ps -f name=recommendable-api-new --format "{{.Status}}" | grep -q "healthy"; do sleep 2; done'
@@ -172,7 +140,6 @@ jobs:
             fi
 
             docker rename recommendable-api-new recommendable-api
-            systemctl reload nginx
 
             echo "Deployment completed successfully!"
 
