@@ -44,7 +44,7 @@ app.use(
 
 // Health check endpoint
 app.get("/health", (_, res) => {
-  res.status(200).json({ status: "health check passed" });
+  res.status(200).json({ status: "health check passed for Recommendable API" });
 });
 
 // Passport / Auth
@@ -56,7 +56,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/recommends", recommendRoutes);
 
 app.get("/", (_, res) => {
-  res.status(200).json({ message: "Welcome to the recommendable API" });
+  res.status(200).json({ message: "Welcome to the Recommendable API" });
 });
 
 // Error handler
