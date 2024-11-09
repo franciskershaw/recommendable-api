@@ -44,7 +44,7 @@ app.use(
 
 // Health check endpoint
 app.get("/health", (_, res) => {
-  res.status(200).json({ status: "healthy" });
+  res.status(200).json({ status: "health check passed" });
 });
 
 // Passport / Auth
