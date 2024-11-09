@@ -92,26 +92,26 @@ jobs:
             sudo mv /home/${{ secrets.DO_USERNAME }}/nginx/recommendable-api.conf /etc/nginx/sites-available/api.recommendableapp.co.uk
             sudo ln -sf /etc/nginx/sites-available/api.recommendableapp.co.uk /etc/nginx/sites-enabled/
             sudo nginx -t && sudo systemctl reload nginx
-          
+
             # SSL Setup
             if [ ! -f "/etc/letsencrypt/live/api.recommendableapp.co.uk/fullchain.pem" ]; then
               echo "Setting up SSL certificate..."
               sudo certbot --nginx -d api.recommendableapp.co.uk --non-interactive --agree-tos --email ${{ secrets.CERTBOT_EMAIL }}
             fi
-  
+
             # Deploy Docker container
             echo "Deploying Docker container..."
             OLD_CONTAINER_ID=$(docker ps -q -f name=recommendable-api)
-              
+
             # Remove existing container if it exists
             if [ "$(docker ps -aq -f name=recommendable-api-new)" ]; then
-                echo "Removing existing recommendable-api-new container..."
-                docker stop recommendable-api-new || true
+              echo "Removing existing recommendable-api-new container..."
+              docker stop recommendable-api-new || true
               docker rm recommendable-api-new || true
             fi
-  
+
             docker pull ${{ env.DOCKER_IMAGE }}:latest
-  
+
             docker run -d \
               --name recommendable-api-new \
               --restart unless-stopped \
@@ -130,24 +130,30 @@ jobs:
               -e GOOGLE_CLIENT_ID='${{ secrets.GOOGLE_CLIENT_ID }}' \
               -e GOOGLE_CLIENT_SECRET='${{ secrets.GOOGLE_CLIENT_SECRET }}' \
               ${{ env.DOCKER_IMAGE }}:latest
-  
-              echo "Waiting for container health check..."
-              timeout 30s bash -c 'until docker ps -f name=recommendable-api-new --format "{{.Status}}" | grep -q "healthy"; do sleep 2; done'
-  
-              if [ $? -ne 0 ]; then
-                echo "New container failed health check. Rolling back..."
-                docker stop recommendable-api-new
-                docker rm recommendable-api-new
-                exit 1
-              fi
-  
-              if [ ! -z "$OLD_CONTAINER_ID" ]; then
-                docker stop $OLD_CONTAINER_ID
-                docker rm $OLD_CONTAINER_ID
-              fi
-  
-              docker rename recommendable-api-new recommendable-api
 
+            # Let's also improve the health check
+            echo "Waiting for container health check..."
+            HEALTH_CHECK_ATTEMPTS=0
+            MAX_ATTEMPTS=10
+
+            until [ $HEALTH_CHECK_ATTEMPTS -eq $MAX_ATTEMPTS ] || curl -sf http://localhost:5400/health > /dev/null 2>&1; do
+              echo "Attempt $((HEALTH_CHECK_ATTEMPTS + 1))/$MAX_ATTEMPTS: Waiting for service to be healthy..."
+              HEALTH_CHECK_ATTEMPTS=$((HEALTH_CHECK_ATTEMPTS + 1))
+              sleep 3
+            done
+
+            if [ $HEALTH_CHECK_ATTEMPTS -eq $MAX_ATTEMPTS ]; then
+              echo "Health check failed after $MAX_ATTEMPTS attempts"
+              docker logs recommendable-api-new
+              exit 1
+            fi
+
+            if [ ! -z "$OLD_CONTAINER_ID" ]; then
+              docker stop $OLD_CONTAINER_ID
+              docker rm $OLD_CONTAINER_ID
+            fi
+
+            docker rename recommendable-api-new recommendable-api
             echo "Deployment completed successfully!"
 
   # Best practice: Keep the rollback job
