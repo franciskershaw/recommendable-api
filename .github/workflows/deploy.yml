@@ -14,6 +14,7 @@ jobs:
   # Add a build-and-push job that runs first
   build:
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
