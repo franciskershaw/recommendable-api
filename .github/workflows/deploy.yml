@@ -1,0 +1,196 @@
+name: Deploy to DigitalOcean
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Add environment variables at workflow level
+env:
+  DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/recommendable-api
+  DOMAIN: api.recommendableapp.co.uk
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: production_environment
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4 # Updated to latest version
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+        timeout-minutes: 5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Tag current production as previous
+        run: |
+          docker pull ${DOCKER_IMAGE}:latest || true
+          if [ $? -eq 0 ]; then
+            docker tag ${DOCKER_IMAGE}:latest ${DOCKER_IMAGE}:previous
+            docker push ${DOCKER_IMAGE}:previous
+          fi
+        continue-on-error: true
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: |
+            ${DOCKER_IMAGE}:latest
+            ${DOCKER_IMAGE}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+        timeout-minutes: 15
+
+      - name: Deploy to DigitalOcean and Setup SSL
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USERNAME }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          # Best practice: Use script_stop to exit on first error
+          script_stop: true
+          script: |
+            set -e
+
+            NGINX_CONFIG="/etc/nginx/sites-available/${DOMAIN}"
+            NGINX_ENABLED="/etc/nginx/sites-enabled/${DOMAIN}"
+            NGINX_BACKUP="${NGINX_CONFIG}.backup"
+
+            echo "Starting deployment process..."
+
+            # Backup existing nginx config if it exists
+            if [ -f $NGINX_CONFIG ]; then
+              cp $NGINX_CONFIG $NGINX_BACKUP
+            fi
+
+            # Create basic nginx configuration if it doesn't exist
+            if [ ! -f $NGINX_CONFIG ]; then
+              cat > $NGINX_CONFIG <<'EOF'
+              server {
+                listen 80;
+                server_name ${DOMAIN};
+
+                location / {
+                  proxy_pass http://localhost:${PORT:-5400};
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host $host;
+                  proxy_cache_bypass $http_upgrade;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+                }
+              }
+              EOF
+            fi
+
+            chmod 644 $NGINX_CONFIG
+            ln -sf $NGINX_CONFIG $NGINX_ENABLED
+
+            if ! nginx -t; then
+              echo "Nginx configuration test failed. Rolling back..."
+              [ -f $NGINX_BACKUP ] && mv $NGINX_BACKUP $NGINX_CONFIG
+              exit 1
+            fi
+
+            if [ ! -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]; then
+              echo "Setting up SSL certificate..."
+              certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos --email ${{ secrets.CERTBOT_EMAIL }}
+              
+              if [ $? -ne 0 ]; then
+                echo "SSL setup failed. Rolling back nginx config..."
+                [ -f $NGINX_BACKUP ] && mv $NGINX_BACKUP $NGINX_CONFIG
+                exit 1
+              fi
+            fi
+
+            echo "Deploying Docker container..."
+            OLD_CONTAINER_ID=$(docker ps -q -f name=recommendable-api)
+
+            docker pull ${DOCKER_IMAGE}:latest
+
+            # Best practice: Use --restart unless-stopped for container recovery
+            docker run -d \
+              --name recommendable-api-new \
+              --restart unless-stopped \
+              --health-cmd="curl -f http://localhost:${PORT:-5400}/health || exit 1" \
+              --health-interval=10s \
+              --health-timeout=5s \
+              --health-retries=3 \
+              -p ${PORT:-5400}:${PORT:-5400} \
+              -e NODE_ENV=production \
+              -e PORT=${PORT:-5400} \
+              -e MONGO_URI='${{ secrets.MONGO_URI }}' \
+              -e CORS_ORIGIN='${{ secrets.CORS_ORIGIN }}' \
+              -e FRONTEND_URL='${{ secrets.FRONTEND_URL }}' \
+              -e JWT_SECRET='${{ secrets.JWT_SECRET }}' \
+              -e JWT_REFRESH_SECRET='${{ secrets.JWT_REFRESH_SECRET }}' \
+              -e GOOGLE_CLIENT_ID='${{ secrets.GOOGLE_CLIENT_ID }}' \
+              -e GOOGLE_CLIENT_SECRET='${{ secrets.GOOGLE_CLIENT_SECRET }}' \
+              ${DOCKER_IMAGE}:latest
+
+            echo "Waiting for container health check..."
+            timeout 30s bash -c 'until docker ps -f name=recommendable-api-new --format "{{.Status}}" | grep -q "healthy"; do sleep 2; done'
+
+            if [ $? -ne 0 ]; then
+              echo "New container failed health check. Rolling back..."
+              docker stop recommendable-api-new
+              docker rm recommendable-api-new
+              exit 1
+            fi
+
+            if [ ! -z "$OLD_CONTAINER_ID" ]; then
+              docker stop $OLD_CONTAINER_ID
+              docker rm $OLD_CONTAINER_ID
+            fi
+
+            docker rename recommendable-api-new recommendable-api
+            systemctl reload nginx
+
+            echo "Deployment completed successfully!"
+
+  # Best practice: Keep the rollback job
+  rollback:
+    needs: deploy
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rollback Deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USERNAME }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          script_stop: true
+          script: |
+            docker pull ${DOCKER_IMAGE}:previous
+            docker stop recommendable-api || true
+            docker rm recommendable-api || true
+
+            docker run -d \
+              --name recommendable-api \
+              --restart unless-stopped \
+              -p ${PORT:-5400}:${PORT:-5400} \
+              -e NODE_ENV=production \
+              -e MONGO_URI='${{ secrets.MONGO_URI }}' \
+              -e CORS_ORIGIN='${{ secrets.CORS_ORIGIN }}' \
+              -e FRONTEND_URL='${{ secrets.FRONTEND_URL }}' \
+              -e JWT_SECRET='${{ secrets.JWT_SECRET }}' \
+              -e JWT_REFRESH_SECRET='${{ secrets.JWT_REFRESH_SECRET }}' \
+              -e GOOGLE_CLIENT_ID='${{ secrets.GOOGLE_CLIENT_ID }}' \
+              -e GOOGLE_CLIENT_SECRET='${{ secrets.GOOGLE_CLIENT_SECRET }}' \
+              ${DOCKER_IMAGE}:previous
+
+            echo "Rollback completed"
