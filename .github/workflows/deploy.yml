@@ -163,7 +163,6 @@ jobs:
               -e PORT=5400 \
               -e MONGO_URI='${{ secrets.MONGO_URI }}' \
               -e CORS_ORIGIN='${{ secrets.CORS_ORIGIN }}' \
-              -e FRONTEND_URL='${{ secrets.FRONTEND_URL }}' \
               -e JWT_SECRET='${{ secrets.JWT_SECRET }}' \
               -e JWT_REFRESH_SECRET='${{ secrets.JWT_REFRESH_SECRET }}' \
               -e GOOGLE_CLIENT_ID='${{ secrets.GOOGLE_CLIENT_ID }}' \
@@ -231,7 +230,6 @@ jobs:
               -e NODE_ENV=production \
               -e MONGO_URI='${{ secrets.MONGO_URI }}' \
               -e CORS_ORIGIN='${{ secrets.CORS_ORIGIN }}' \
-              -e FRONTEND_URL='${{ secrets.FRONTEND_URL }}' \
               -e JWT_SECRET='${{ secrets.JWT_SECRET }}' \
               -e JWT_REFRESH_SECRET='${{ secrets.JWT_REFRESH_SECRET }}' \
               -e GOOGLE_CLIENT_ID='${{ secrets.GOOGLE_CLIENT_ID }}' \
