@@ -93,11 +93,26 @@ jobs:
             sudo ln -sf /etc/nginx/sites-available/api.recommendableapp.co.uk /etc/nginx/sites-enabled/
             sudo nginx -t && sudo systemctl reload nginx
 
-            # SSL Setup
+            # SSL Setup with more verbose output and verification
             if [ ! -f "/etc/letsencrypt/live/api.recommendableapp.co.uk/fullchain.pem" ]; then
               echo "Setting up SSL certificate..."
-              sudo certbot --nginx -d api.recommendableapp.co.uk --non-interactive --agree-tos --email ${{ secrets.CERTBOT_EMAIL }}
+              sudo certbot --nginx \
+                -d api.recommendableapp.co.uk \
+                --non-interactive \
+                --agree-tos \
+                --email ${{ secrets.CERTBOT_EMAIL }} \
+                --redirect  # This forces HTTP to HTTPS redirect
+              
+              echo "Verifying SSL configuration..."
+              sudo certbot certificates
+            else
+              echo "SSL certificate exists, checking expiry..."
+              sudo certbot certificates
             fi
+
+            # Verify nginx configuration after SSL setup
+            echo "Checking nginx configuration..."
+            sudo nginx -T
 
             # Deploy Docker container
             echo "Deploying Docker container..."
@@ -115,7 +130,7 @@ jobs:
               --name recommendable-api-new \
               --restart unless-stopped \
               --health-cmd="curl -f http://localhost:5400/health || exit 1" \
-              --health-interval=10s \
+              --health-interval=30s \
               --health-timeout=5s \
               --health-retries=3 \
               -p 5400:5400 \
