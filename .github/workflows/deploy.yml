@@ -71,6 +71,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Copy Nginx configuration
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USERNAME }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          source: "nginx/recommendable-api.conf"
+          target: "/home/${{ secrets.DO_USERNAME }}/nginx/"
+          strip_components: 1
+
       - name: Configure Nginx and SSL
         uses: appleboy/ssh-action@master
         with:
@@ -79,6 +89,9 @@ jobs:
           key: ${{ secrets.DO_SSH_KEY }}
           script_stop: true
           script: |
+            # Create nginx directory if it doesn't exist
+            mkdir -p /home/${{ secrets.DO_USERNAME }}/nginx
+
             # Setup Nginx
             sudo mv /home/${{ secrets.DO_USERNAME }}/nginx/recommendable-api.conf /etc/nginx/sites-available/api.recommendableapp.co.uk
             sudo ln -sf /etc/nginx/sites-available/api.recommendableapp.co.uk /etc/nginx/sites-enabled/
