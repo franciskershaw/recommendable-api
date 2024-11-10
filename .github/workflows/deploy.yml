@@ -121,7 +121,7 @@ jobs:
             # Setup SSL if needed
             if [ ! -f "/etc/letsencrypt/live/api.recommendableapp.co.uk/fullchain.pem" ]; then
               echo "Setting up SSL certificate..."
-              sudo certbot --nginx \
+              sudo certbot --nginx -d api.recommendableapp.co.uk \
                 -d api.recommendableapp.co.uk \
                 --non-interactive \
                 --agree-tos \
