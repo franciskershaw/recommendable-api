@@ -92,16 +92,23 @@ jobs:
             # Create nginx directory if it doesn't exist
             mkdir -p /home/${{ secrets.DO_USERNAME }}/nginx
 
-            # Setup Nginx
-            sudo mv /home/${{ secrets.DO_USERNAME }}/nginx/recommendable-api.conf /etc/nginx/sites-available/api.recommendableapp.co.uk
-            sudo ln -sf /etc/nginx/sites-available/api.recommendableapp.co.uk /etc/nginx/sites-enabled/
-            sudo nginx -t && sudo systemctl reload nginx
-
-            # SSL Setup
-            if [ ! -f "/etc/letsencrypt/live/api.recommendableapp.co.uk/fullchain.pem" ]; then
-              echo "Setting up SSL certificate..."
-              sudo certbot --nginx -d api.recommendableapp.co.uk --non-interactive --agree-tos --email ${{ secrets.CERTBOT_EMAIL }} --redirect
+            # Check if nginx config exists and has SSL configuration
+            if [ -f "/etc/nginx/sites-available/api.recommendableapp.co.uk" ] && grep -q "ssl_certificate" "/etc/nginx/sites-available/api.recommendableapp.co.uk"; then
+              echo "SSL configuration exists, preserving current nginx config"
+            else
+              echo "Setting up new nginx config..."
+              sudo mv /home/${{ secrets.DO_USERNAME }}/nginx/recommendable-api.conf /etc/nginx/sites-available/api.recommendableapp.co.uk
+              sudo ln -sf /etc/nginx/sites-available/api.recommendableapp.co.uk /etc/nginx/sites-enabled/
+              
+              # Setup SSL with certbot if needed
+              if [ ! -f "/etc/letsencrypt/live/api.recommendableapp.co.uk/fullchain.pem" ]; then
+                echo "Setting up SSL certificate..."
+                sudo certbot --nginx -d api.recommendableapp.co.uk --non-interactive --agree-tos --email ${{ secrets.CERTBOT_EMAIL }} --redirect
+              fi
             fi
+
+            # Test and reload nginx
+            sudo nginx -t && sudo systemctl reload nginx
 
       - name: Deploy Docker Container
         uses: appleboy/ssh-action@master
