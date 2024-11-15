@@ -43,6 +43,10 @@ export const getRecommends = async (
       .populate({
         path: "recommends.places",
         match: { isArchived },
+      })
+      .populate({
+        path: "recommends.bars-restaurants",
+        match: { isArchived },
       });
 
     if (!user) {
