@@ -9,6 +9,7 @@ import {
   CATEGORY_MUSIC,
   CATEGORY_EVENTS,
   CATEGORY_PLACES,
+  CATEGORY_BARS_RESTAURANTS,
 } from "../utils/constants";
 import mongoose from "mongoose";
 
@@ -54,6 +55,7 @@ export const getRecommends = async (
       [CATEGORY_MUSIC]: user.recommends.music,
       [CATEGORY_EVENTS]: user.recommends.events,
       [CATEGORY_PLACES]: user.recommends.places,
+      [CATEGORY_BARS_RESTAURANTS]: user.recommends["bars-restaurants"],
     };
 
     res.status(200).json(categorisedRecommends);

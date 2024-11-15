@@ -29,7 +29,8 @@ export const newRecommendSchema = Joi.object({
       CATEGORY_TV,
       CATEGORY_MUSIC,
       CATEGORY_EVENTS,
-      CATEGORY_PLACES
+      CATEGORY_PLACES,
+      CATEGORY_BARS_RESTAURANTS
     )
     .required()
     .messages({
