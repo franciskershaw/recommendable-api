@@ -132,6 +132,7 @@ export const editRecommend = async (
         { "recommends.music": recommendId },
         { "recommends.events": recommendId },
         { "recommends.places": recommendId },
+        { "recommends.bars-restaurants": recommendId },
       ],
     }).session(session);
 
@@ -184,6 +185,7 @@ export const deleteRecommend = async (
           { "recommends.music": recommendId },
           { "recommends.events": recommendId },
           { "recommends.places": recommendId },
+          { "recommends.bars-restaurants": recommendId },
         ],
       },
       {
@@ -193,6 +195,7 @@ export const deleteRecommend = async (
           "recommends.music": recommendId,
           "recommends.events": recommendId,
           "recommends.places": recommendId,
+          "recommends.bars-restaurants": recommendId,
         },
       },
       { new: true, session }
@@ -240,6 +243,7 @@ export const archiveRecommend = async (
         { "recommends.music": recommendId },
         { "recommends.events": recommendId },
         { "recommends.places": recommendId },
+        { "recommends.bars-restaurants": recommendId },
       ],
     });
 
@@ -281,6 +285,7 @@ export const unarchiveRecommend = async (
         { "recommends.music": recommendId },
         { "recommends.events": recommendId },
         { "recommends.places": recommendId },
+        { "recommends.bars-restaurants": recommendId },
       ],
     });
 

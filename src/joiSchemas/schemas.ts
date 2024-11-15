@@ -6,6 +6,7 @@ import {
   CATEGORY_EVENTS,
   CATEGORY_PLACES,
   SORT_OPTIONS,
+  CATEGORY_BARS_RESTAURANTS,
 } from "../utils/constants";
 
 export const newRecommendSchema = Joi.object({
@@ -84,6 +85,12 @@ export const updateUserPreferencesSchema = Joi.object({
       .optional()
       .messages({
         "any.only": "Invalid sorting option for places",
+      }),
+    [CATEGORY_BARS_RESTAURANTS]: Joi.string()
+      .valid(...SORT_OPTIONS)
+      .optional()
+      .messages({
+        "any.only": "Invalid sorting option for bars and restaurants",
       }),
   })
     .min(1)

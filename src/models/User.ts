@@ -5,6 +5,7 @@ import {
   CATEGORY_MUSIC,
   CATEGORY_EVENTS,
   CATEGORY_PLACES,
+  CATEGORY_BARS_RESTAURANTS,
   SORT_BY_MOST_RECENT,
   SORT_OPTIONS,
 } from "../utils/constants";
@@ -22,7 +23,8 @@ export interface IUser extends Document {
       | typeof CATEGORY_TV
       | typeof CATEGORY_MUSIC
       | typeof CATEGORY_EVENTS
-      | typeof CATEGORY_PLACES]: mongoose.Types.ObjectId[];
+      | typeof CATEGORY_PLACES
+      | typeof CATEGORY_BARS_RESTAURANTS]: mongoose.Types.ObjectId[];
   };
   provider: "google" | "local";
   sortPreferences: {
@@ -31,7 +33,8 @@ export interface IUser extends Document {
       | typeof CATEGORY_TV
       | typeof CATEGORY_MUSIC
       | typeof CATEGORY_EVENTS
-      | typeof CATEGORY_PLACES]?: (typeof SORT_OPTIONS)[number];
+      | typeof CATEGORY_PLACES
+      | typeof CATEGORY_BARS_RESTAURANTS]?: (typeof SORT_OPTIONS)[number];
   };
 }
 
@@ -75,6 +78,7 @@ const UserSchema = new mongoose.Schema(
       [CATEGORY_MUSIC]: categorySchemaDefinition(),
       [CATEGORY_EVENTS]: categorySchemaDefinition(),
       [CATEGORY_PLACES]: categorySchemaDefinition(),
+      [CATEGORY_BARS_RESTAURANTS]: categorySchemaDefinition(),
     },
     provider: {
       type: String,
@@ -103,6 +107,11 @@ const UserSchema = new mongoose.Schema(
         default: SORT_BY_MOST_RECENT,
       },
       [CATEGORY_PLACES]: {
+        type: String,
+        enum: SORT_OPTIONS,
+        default: SORT_BY_MOST_RECENT,
+      },
+      [CATEGORY_BARS_RESTAURANTS]: {
         type: String,
         enum: SORT_OPTIONS,
         default: SORT_BY_MOST_RECENT,

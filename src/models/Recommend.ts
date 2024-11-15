@@ -5,6 +5,7 @@ import {
   CATEGORY_MUSIC,
   CATEGORY_EVENTS,
   CATEGORY_PLACES,
+  CATEGORY_BARS_RESTAURANTS,
 } from "../utils/constants";
 
 // Define an interface for the Recommend document
@@ -43,6 +44,7 @@ const RecommendSchema = new mongoose.Schema(
         CATEGORY_MUSIC,
         CATEGORY_EVENTS,
         CATEGORY_PLACES,
+        CATEGORY_BARS_RESTAURANTS,
       ],
     },
     isArchived: {
